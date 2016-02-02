@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default class Video extends Component {
+class Video extends Component {
 
   constructor(props, context) {
     super(props, context);
@@ -28,6 +28,8 @@ export default class Video extends Component {
     this._onProgress = this._onProgress.bind(this);
     this._onSeek = this._onSeek.bind(this);
     this._onEnd = this._onEnd.bind(this);
+    this._onEnterFullScreen = this._onEnterFullScreen.bind(this);
+    this._onExitFullScreen = this._onExitFullScreen.bind(this);
   }
 
   setNativeProps(nativeProps) {
@@ -78,6 +80,18 @@ export default class Video extends Component {
     }
   }
 
+  _onEnterFullScreen(event) {
+    if (this.props.onEnterFullScreen) {
+      this.props.onEnterFullScreen(event.nativeEvent);
+    }
+  }
+
+  _onExitFullScreen(event) {
+    if (this.props.onExitFullScreen) {
+      this.props.onExitFullScreen(event.nativeEvent);
+    }
+  }
+
   render() {
     const {
       source,
@@ -119,6 +133,8 @@ export default class Video extends Component {
       onVideoProgress: this._onProgress,
       onVideoSeek: this._onSeek,
       onVideoEnd: this._onEnd,
+      onVideoEnterFullScreen: this._onEnterFullScreen,
+      onVideoExitFullScreen: this._onExitFullScreen
     });
 
     return (
@@ -151,7 +167,8 @@ Video.propTypes = {
   onProgress: PropTypes.func,
   onSeek: PropTypes.func,
   onEnd: PropTypes.func,
-
+  onEnterFullScreen: PropTypes.func,
+  onExitFullScreen: PropTypes.func,
   /* Required by react-native */
   scaleX: React.PropTypes.number,
   scaleY: React.PropTypes.number,
@@ -167,3 +184,5 @@ const RCTVideo = requireNativeComponent('RCTVideo', Video, {
     seek: true,
   },
 });
+
+module.exports = Video;

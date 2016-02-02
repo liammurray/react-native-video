@@ -39,7 +39,7 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
 
 - (instancetype)initWithEventDispatcher:(RCTEventDispatcher *)eventDispatcher
 {
-  if ((self = [super init])) {
+  if ((self = [super initWithFrame:CGRectZero])) {
     _eventDispatcher = eventDispatcher;
 
     _rate = 1.0;
@@ -70,8 +70,12 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
     playerLayer.view.frame = self.bounds;
     playerLayer.player = _player;
     playerLayer.view.frame = self.bounds;
+
+    [playerLayer.contentOverlayView addObserver:self forKeyPath:@"bounds" options:NSKeyValueObservingOptionNew | NSKeyValueObservingOptionOld context:NULL];
+
     return playerLayer;
 }
+
 
 /* ---------------------------------------------------------
  **  Get the duration for a AVPlayerItem.
@@ -84,7 +88,7 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
     {
         return([playerItem duration]);
     }
-    
+
     return(kCMTimeInvalid);
 }
 
@@ -129,7 +133,7 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
    if (video == nil || video.status != AVPlayerItemStatusReadyToPlay) {
      return;
    }
-    
+
    CMTime playerDuration = [self playerItemDuration];
    if (CMTIME_IS_INVALID(playerDuration)) {
       return;
@@ -206,6 +210,8 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
   [_player pause];
   [_playerLayer removeFromSuperlayer];
   _playerLayer = nil;
+
+  [_playerViewController.contentOverlayView removeObserver:self forKeyPath:@"bounds"];
   [_playerViewController.view removeFromSuperview];
   _playerViewController = nil;
 
@@ -285,6 +291,27 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
         [self setPaused:_paused];
       }
     }
+  } else if (object == _playerViewController.contentOverlayView) {
+    if ([keyPath isEqualToString:@"bounds"]) {
+        CGRect oldBounds = [change[NSKeyValueChangeOldKey] CGRectValue], newBounds = [change[NSKeyValueChangeNewKey] CGRectValue];
+        BOOL wasFullscreen = CGRectEqualToRect(oldBounds, [UIScreen mainScreen].bounds), isFullscreen = CGRectEqualToRect(newBounds, [UIScreen mainScreen].bounds);
+        if (isFullscreen && !wasFullscreen) {
+            if (CGRectEqualToRect(oldBounds, CGRectMake(0, 0, newBounds.size.height, newBounds.size.width))) {
+                //NSLog(@">>>>>>>>>>>>>> rotated fullscreen");
+            }
+            else {
+                //NSLog(@">>>>>>>>>>>>>>entered fullscreen");
+                [_eventDispatcher sendInputEventWithName:@"onVideoEnterFullScreen"
+                                                    body:@{@"target": self.reactTag}];
+                
+            }
+        }
+        else if (!isFullscreen && wasFullscreen) {
+            //NSLog(@">>>>>>>>>>>>>> exited fullscreen");
+            [_eventDispatcher sendInputEventWithName:@"onVideoExitFullScreen"
+                                                body:@{@"target": self.reactTag}];
+        }
+    }
   } else {
       [super observeValueForKeyPath:keyPath ofObject:object change:change context:context];
   }
@@ -334,7 +361,7 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
     [_player play];
     [_player setRate:_rate];
   }
-  
+
   _paused = paused;
 }
 
@@ -360,7 +387,7 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
     CMTime current = item.currentTime;
     // TODO figure out a good tolerance level
     CMTime tolerance = CMTimeMake(1000, timeScale);
-    
+
     if (CMTimeCompare(current, cmSeekTime) != 0) {
       [_player seekToTime:cmSeekTime toleranceBefore:tolerance toleranceAfter:tolerance completionHandler:^(BOOL finished) {
         [_eventDispatcher sendInputEventWithName:@"onVideoSeek"
@@ -433,7 +460,7 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
       _playerLayer = [AVPlayerLayer playerLayerWithPlayer:_player];
       _playerLayer.frame = self.bounds;
       _playerLayer.needsDisplayOnBoundsChange = YES;
-    
+
       [self.layer addSublayer:_playerLayer];
       self.layer.needsDisplayOnBoundsChange = YES;
     }
@@ -452,6 +479,7 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
         }
         else
         {
+            [_playerViewController.contentOverlayView removeObserver:self forKeyPath:@"bounds"];
             [_playerViewController.view removeFromSuperview];
             _playerViewController = nil;
             [self usePlayerLayer];
@@ -469,7 +497,7 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
   {
     [self setControls:true];
   }
-  
+
   if( _controls )
   {
      view.frame = self.bounds;
@@ -501,7 +529,7 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
   if( _controls )
   {
     _playerViewController.view.frame = self.bounds;
-  
+
     // also adjust all subviews of contentOverlayView
     for (UIView* subview in _playerViewController.contentOverlayView.subviews) {
       subview.frame = self.bounds;
@@ -525,7 +553,8 @@ static NSString *const playbackLikelyToKeepUpKeyPath = @"playbackLikelyToKeepUp"
 
   [_playerLayer removeFromSuperlayer];
   _playerLayer = nil;
-  
+
+  [_playerViewController.contentOverlayView removeObserver:self forKeyPath:@"bounds"];
   [_playerViewController.view removeFromSuperview];
   _playerViewController = nil;
 
