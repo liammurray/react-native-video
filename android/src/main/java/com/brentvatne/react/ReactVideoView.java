@@ -1,6 +1,8 @@
 package com.brentvatne.react;
 
 import android.media.MediaPlayer;
+import android.view.MotionEvent;
+import android.widget.MediaController;
 import android.os.Handler;
 import android.util.Log;
 import com.facebook.react.bridge.Arguments;
@@ -11,7 +13,7 @@ import com.yqritc.scalablevideoview.ScalableType;
 import com.yqritc.scalablevideoview.ScalableVideoView;
 
 public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnPreparedListener, MediaPlayer
-        .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener {
+        .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl {
 
     public enum Events {
         EVENT_LOAD_START("onVideoLoadStart"),
@@ -62,12 +64,15 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     private boolean mRepeat = false;
     private boolean mPaused = false;
     private boolean mMuted = false;
+    private boolean mShowControls = false;
     private float mVolume = 1.0f;
     private float mRate = 1.0f;
 
     private boolean mMediaPlayerValid = false; // True if mMediaPlayer is in prepared, started, or paused state.
     private int mVideoDuration = 0;
     private int mVideoBufferedDuration = 0;
+
+    private MediaController mController;
 
     public ReactVideoView(ThemedReactContext themedReactContext) {
         super(themedReactContext);
@@ -199,6 +204,17 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         setMutedModifier(mMuted);
     }
 
+
+    public void setShowControls(final boolean showControls) {
+        mShowControls = showControls;
+        if (mShowControls && mController == null) {
+            mController = new MediaController(mThemedReactContext);
+            mController.setMediaPlayer(this);
+            mController.setAnchorView(this);
+            mController.show();
+        }
+    }
+
     public void setRateModifier(final float rate) {
         mRate = rate;
 
@@ -213,7 +229,16 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         setRepeatModifier(mRepeat);
         setPausedModifier(mPaused);
         setMutedModifier(mMuted);
+        setShowControls(mShowControls);
 //        setRateModifier(mRate);
+    }
+
+    @Override
+    public boolean onTouchEvent(MotionEvent ev) {
+        if (mController != null) {
+            toggleMediaControlsVisiblity();
+        }
+        return false;
     }
 
     @Override
@@ -282,5 +307,51 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         setSrc(mSrcUriString, mSrcType, mSrcIsNetwork);
+    }
+
+
+    private void toggleMediaControlsVisiblity() {
+        if (mController.isShowing()) {
+            mController.hide();
+        } else {
+            mController.show();
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////
+    // Interface MediaController.MediaPlayerControl
+    //////////////////////////////////////////////////////////////////
+    public  int getBufferPercentage() {
+        return mVideoBufferedDuration * 100 / mVideoDuration;
+    }
+
+    public void pause() {
+        super.pause();
+        if (mController != null) {
+            mController.show(0);
+        }
+    }
+
+    public void start() {
+        super.start();
+        if (mController != null) {
+            mController.show();
+        }
+    }
+
+    public  boolean canPause() {
+        return true;
+    }
+
+    public  boolean canSeekBackward() {
+        return true;
+    }
+
+    public  boolean canSeekForward() {
+        return true;
+    }
+
+    public  int getAudioSessionId() {
+        return mMediaPlayer.getAudioSessionId();
     }
 }

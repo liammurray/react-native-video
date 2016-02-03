@@ -29,6 +29,7 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoView> {
     public static final String PROP_VOLUME = "volume";
     public static final String PROP_SEEK = "seek";
     public static final String PROP_RATE = "rate";
+    public static final String PROP_CONTROLS = "controls";
 
     @Override
     public String getName() {
@@ -104,4 +105,10 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoView> {
     public void setRate(final ReactVideoView videoView, final float rate) {
         videoView.setRateModifier(rate);
     }
+
+    @ReactProp(name = PROP_CONTROLS, defaultBoolean = false)
+    public void setControls(final ReactVideoView videoView, final boolean showControls) {
+        videoView.setShowControls(showControls);
+    }
+
 }

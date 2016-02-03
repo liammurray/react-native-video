@@ -20,6 +20,7 @@ var VideoPlayer = React.createClass({
       resizeMode: 'contain',
       duration: 0.0,
       currentTime: 0.0,
+      controls: true
     }
   },
 
@@ -79,22 +80,25 @@ var VideoPlayer = React.createClass({
     var flexCompleted = this.getCurrentTimePercentage() * 100;
     var flexRemaining = (1 - this.getCurrentTimePercentage()) * 100;
 
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity style={styles.fullScreen} onPress={() => {this.setState({paused: !this.state.paused})}}>
-          <Video source={{uri: "broadchurch"}}
-                 style={styles.fullScreen}
-                 rate={this.state.rate}
-                 paused={this.state.paused}
-                 volume={this.state.volume}
-                 muted={this.state.muted}
-                 resizeMode={this.state.resizeMode}
-                 onLoad={this.onLoad}
-                 onProgress={this.onProgress}
-                 onEnd={() => { console.log('Done!') }}
-                 repeat={true} />
-        </TouchableOpacity>
+    var video = (
+      <Video source={{uri: "broadchurch"}}
+             style={styles.fullScreen}
+             rate={this.state.rate}
+             paused={this.state.paused}
+             volume={this.state.volume}
+             muted={this.state.muted}
+             resizeMode={this.state.resizeMode}
+             onLoad={this.onLoad}
+             controls={this.state.controls}
+             onProgress={this.onProgress}
+             onEnd={() => { console.log('Done!') }}
+             repeat={true} />
+         );
 
+    var myControls;
+    var videoBlock;
+    if (! this.state.controls) {
+      myControls = (
         <View style={styles.controls}>
           <View style={styles.generalControls}>
             <View style={styles.rateControl}>
@@ -125,6 +129,22 @@ var VideoPlayer = React.createClass({
             </View>
           </View>
         </View>
+      );
+
+      videoBlock = (
+        <TouchableOpacity style={styles.fullScreen} onPress={() => {this.setState({paused: !this.state.paused})}}>
+          {video}
+        </TouchableOpacity>
+      )
+    } else {
+      videoBlock = video;
+    }
+
+
+    return (
+      <View style={styles.container}>
+        {videoBlock}
+        {myControls}
       </View>
     );
   }
