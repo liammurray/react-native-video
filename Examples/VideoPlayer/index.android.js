@@ -1,36 +1,39 @@
 'use strict';
 
-var React = require('react-native');
-var {
+import React, {
   AppRegistry,
+  Component,
   StyleSheet,
   Text,
-  View,
   TouchableOpacity,
-} = React;
+  View,
+} from 'react-native';
 
-var Video = require('react-native-video');
+import Video from 'react-native-video';
 
-var VideoPlayer = React.createClass({
-  getInitialState() {
-    return {
-      rate: 1,
-      volume: 1,
-      muted: false,
-      resizeMode: 'contain',
-      duration: 0.0,
-      currentTime: 0.0,
-      controls: false
-    }
-  },
+class VideoPlayer extends Component {
+  constructor(props) {
+    super(props);
+    this.onLoad = this.onLoad.bind(this);
+    this.onProgress = this.onProgress.bind(this);
+  }
+
+  state = {
+    rate: 1,
+    volume: 1,
+    muted: false,
+    resizeMode: 'contain',
+    duration: 0.0,
+    currentTime: 0.0,
+  };
 
   onLoad(data) {
     this.setState({duration: data.duration});
-  },
+  }
 
   onProgress(data) {
     this.setState({currentTime: data.currentTime});
-  },
+  }
 
   getCurrentTimePercentage() {
     if (this.state.currentTime > 0) {
@@ -38,10 +41,10 @@ var VideoPlayer = React.createClass({
     } else {
       return 0;
     }
-  },
+  }
 
   renderRateControl(rate) {
-    var isSelected = (this.state.rate == rate);
+    const isSelected = (this.state.rate == rate);
 
     return (
       <TouchableOpacity onPress={() => { this.setState({rate: rate}) }}>
@@ -50,10 +53,10 @@ var VideoPlayer = React.createClass({
         </Text>
       </TouchableOpacity>
     )
-  },
+  }
 
   renderResizeModeControl(resizeMode) {
-    var isSelected = (this.state.resizeMode == resizeMode);
+    const isSelected = (this.state.resizeMode == resizeMode);
 
     return (
       <TouchableOpacity onPress={() => { this.setState({resizeMode: resizeMode}) }}>
@@ -62,10 +65,10 @@ var VideoPlayer = React.createClass({
         </Text>
       </TouchableOpacity>
     )
-  },
+  }
 
   renderVolumeControl(volume) {
-    var isSelected = (this.state.volume == volume);
+    const isSelected = (this.state.volume == volume);
 
     return (
       <TouchableOpacity onPress={() => { this.setState({volume: volume}) }}>
@@ -74,31 +77,28 @@ var VideoPlayer = React.createClass({
         </Text>
       </TouchableOpacity>
     )
-  },
+  }
 
   render() {
-    var flexCompleted = this.getCurrentTimePercentage() * 100;
-    var flexRemaining = (1 - this.getCurrentTimePercentage()) * 100;
+    const flexCompleted = this.getCurrentTimePercentage() * 100;
+    const flexRemaining = (1 - this.getCurrentTimePercentage()) * 100;
 
-    var video = (
-      <Video source={{uri: "broadchurch"}}
-             style={styles.fullScreen}
-             rate={this.state.rate}
-             paused={this.state.paused}
-             volume={this.state.volume}
-             muted={this.state.muted}
-             resizeMode={this.state.resizeMode}
-             onLoad={this.onLoad}
-             controls={this.state.controls}
-             onProgress={this.onProgress}
-             onEnd={() => { console.log('Done!') }}
-             repeat={true} />
-         );
+    return (
+      <View style={styles.container}>
+        <TouchableOpacity style={styles.fullScreen} onPress={() => {this.setState({paused: !this.state.paused})}}>
+          <Video source={{uri: "broadchurch"}}
+                 style={styles.fullScreen}
+                 rate={this.state.rate}
+                 paused={this.state.paused}
+                 volume={this.state.volume}
+                 muted={this.state.muted}
+                 resizeMode={this.state.resizeMode}
+                 onLoad={this.onLoad}
+                 onProgress={this.onProgress}
+                 onEnd={() => { console.log('Done!') }}
+                 repeat={true} />
+        </TouchableOpacity>
 
-    var myControls;
-    var videoBlock;
-    if (! this.state.controls) {
-      myControls = (
         <View style={styles.controls}>
           <View style={styles.generalControls}>
             <View style={styles.rateControl}>
@@ -129,29 +129,13 @@ var VideoPlayer = React.createClass({
             </View>
           </View>
         </View>
-      );
-
-      videoBlock = (
-        <TouchableOpacity style={styles.fullScreen} onPress={() => {this.setState({paused: !this.state.paused})}}>
-          {video}
-        </TouchableOpacity>
-      )
-    } else {
-      videoBlock = video;
-    }
-
-
-    return (
-      <View style={styles.container}>
-        {videoBlock}
-        {myControls}
       </View>
     );
   }
-});
+}
 
 
-var styles = StyleSheet.create({
+const styles = StyleSheet.create({
   container: {
     flex: 1,
     justifyContent: 'center',
