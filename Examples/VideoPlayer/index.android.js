@@ -11,6 +11,9 @@ import React, {
 
 import Video from 'react-native-video';
 
+import FullScreen, {ToggleView} from 'react-native-full-screen'
+
+
 class VideoPlayer extends Component {
   constructor(props) {
     super(props);
@@ -25,6 +28,7 @@ class VideoPlayer extends Component {
     resizeMode: 'contain',
     duration: 0.0,
     currentTime: 0.0,
+
   };
 
   onLoad(data) {
@@ -85,7 +89,16 @@ class VideoPlayer extends Component {
 
     return (
       <View style={styles.container}>
-        <TouchableOpacity style={styles.fullScreen} onPress={() => {this.setState({paused: !this.state.paused})}}>
+        <TouchableOpacity style={styles.fullScreen} onPress={() => {
+          this.setState({paused: !this.state.paused})
+          if (this.state.paused) {
+            FullScreen.onFullScreen();
+          } else {
+            FullScreen.offFullScreen()
+          }
+
+        }
+        }>
           <Video source={{uri: "broadchurch"}}
                  style={styles.fullScreen}
                  rate={this.state.rate}

@@ -1,7 +1,16 @@
 rootProject.name = 'VideoPlayer'
 
 include ':app'
+// Installed NPM package
 include ':react-native-video'
 project(':react-native-video').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-video/android')
-include ':RCTVideo', ':app'
+// Local project (development)
+include ':RCTVideo'
 project(':RCTVideo').projectDir = new File(rootProject.projectDir, '../../../android')
+
+include ':react-native'
+project(':react-native').projectDir = file('../node_modules/react-native/ReactAndroid')
+
+
+include ':react-native-full-screen'
+project(':react-native-full-screen').projectDir = file('../node_modules/react-native-full-screen/android')

@@ -4,6 +4,7 @@ import com.facebook.react.ReactActivity;
 import com.brentvatne.react.ReactVideoPackage;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.shell.MainReactPackage;
+import com.rn.full.screen.FullScreenModule;
 
 import java.util.Arrays;
 import java.util.List;
@@ -36,6 +37,7 @@ public class MainActivity extends ReactActivity {
     protected List<ReactPackage> getPackages() {
       return Arrays.<ReactPackage>asList(
         new MainReactPackage(),
+        new FullScreenModule(),
         new ReactVideoPackage());
     }
 }
