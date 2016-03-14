@@ -10,6 +10,7 @@ import React, {
 } from 'react-native';
 
 import Video from 'react-native-video';
+import AndroidUtil from './AndroidUtil';
 
 class VideoPlayer extends Component {
   constructor(props) {
@@ -85,7 +86,9 @@ class VideoPlayer extends Component {
 
     return (
       <View style={styles.container}>
-        <TouchableOpacity style={styles.fullScreen} onPress={() => {this.setState({paused: !this.state.paused})}}>
+        <TouchableOpacity style={styles.fullScreen} onPress={() => {
+          AndroidUtil.setFullScreenMode(!this.state.paused);
+          this.setState({paused: !this.state.paused})}}>
           <Video source={{uri: "broadchurch"}}
                  style={styles.fullScreen}
                  rate={this.state.rate}
