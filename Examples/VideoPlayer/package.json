@@ -7,7 +7,6 @@
   },
   "dependencies": {
     "react-native": "^0.19.0",
-    "react-native-full-screen": "0.0.0",
     "react-native-video": "../../"
   }
 }
