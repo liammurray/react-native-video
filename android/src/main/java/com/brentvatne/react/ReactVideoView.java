@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.media.MediaPlayer;
 import android.os.Build;
 import android.view.MotionEvent;
+import android.view.View;
 import android.widget.MediaController;
 import android.os.Handler;
 import android.util.Log;
@@ -15,7 +16,8 @@ import com.yqritc.scalablevideoview.ScalableType;
 import com.yqritc.scalablevideoview.ScalableVideoView;
 
 public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnPreparedListener, MediaPlayer
-        .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl {
+        .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl, ReactVideoMediaController.VisibilityListener {
+
 
     public enum Events {
         EVENT_LOAD_START("onVideoLoadStart"),
@@ -75,7 +77,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     private int mVideoDuration = 0;
     private int mVideoBufferedDuration = 0;
 
-    private MediaController mController;
+    private ReactVideoMediaController mController;
 
     public ReactVideoView(ThemedReactContext themedReactContext) {
         super(themedReactContext);
@@ -212,9 +214,10 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         mShowControls = showControls;
         if (mShowControls) {
             if (mController == null) {
-                mController = new MediaController(mThemedReactContext);
+                mController = new ReactVideoMediaController(mThemedReactContext);
                 mController.setMediaPlayer(this);
                 mController.setAnchorView(this);
+                mController.setVisibilityListener(this);
             }
             mController.show();
         } else if (mController != null) {
@@ -266,6 +269,8 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         event.putBoolean(EVENT_PROP_STEP_FORWARD, true);
         mEventEmitter.receiveEvent(getId(), Events.EVENT_LOAD.toString(), event);
 
+        setFullscreenMode(true);
+
         applyModifiers();
     }
 
@@ -315,6 +320,64 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         super.onAttachedToWindow();
         setSrc(mSrcUriString, mSrcType, mSrcIsNetwork, mSrcIsAsset);
         setShowControls(mShowControls);
+    }
+
+    Runnable mNavHider = new Runnable() {
+        @Override public void run() {
+            setNavVisibility(false);
+        }
+    };
+
+    int mBaseSystemUiVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            | SYSTEM_UI_FLAG_LAYOUT_STABLE;
+
+    @Override
+    public void onControllerVisibilityChanged(boolean attached) {
+        setNavVisibility(attached);
+    }
+
+    void setBaseSystemUiVisibility(int visibility) {
+        mBaseSystemUiVisibility = visibility;
+    }
+
+    void setNavVisibility(boolean visible) {
+        int newVis = mBaseSystemUiVisibility;
+        if (!visible) {
+            newVis |= SYSTEM_UI_FLAG_LOW_PROFILE | SYSTEM_UI_FLAG_FULLSCREEN;
+        }
+        final boolean changed = newVis == getSystemUiVisibility();
+
+        // Unschedule any pending event to hide navigation if we are
+        // changing the visibility, or making the UI visible.
+        if (changed || visible) {
+            Handler h = getHandler();
+            if (h != null) {
+                h.removeCallbacks(mNavHider);
+            }
+        }
+        setSystemUiVisibility(newVis);
+
+    }
+
+    private void setFullscreenMode(boolean set) {
+        if (set) {
+            setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
+                            | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
+                            | View.SYSTEM_UI_FLAG_IMMERSIVE
+            );
+
+        } else {
+            setSystemUiVisibility(
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+            );
+        }
+
     }
 
     private void toggleMediaControllerVisibility() {
