@@ -26,16 +26,20 @@ class VideoPlayer extends Component {
     resizeMode: 'contain',
     duration: 0.0,
     currentTime: 0.0,
-    controls:true
+    controls:true,
+    autoHideNav:true
   };
 
   onLoad(data) {
     this.setState({duration: data.duration});
   }
 
-  componentWillUpdate(nextProps, nextState) {
-
+  onEnterFullscreen(data) {
   }
+
+  onExitFullscreen(data) {
+  }
+
 
   onProgress(data) {
     if (!this.state.controls) {
@@ -125,8 +129,9 @@ class VideoPlayer extends Component {
                  resizeMode={this.state.resizeMode}
                  onLoad={this.onLoad}
                  controls={this.state.controls}
+                 autoHideNav={this.state.autoHideNav}
                  onProgress={this.onProgress}
-                 onEnd={() => { AndroidUtil.setFullScreenMode(false) }}
+                 onEnd={() => {}}
                  repeat={false} />
       );
 

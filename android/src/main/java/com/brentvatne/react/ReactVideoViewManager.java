@@ -30,7 +30,10 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoView> {
     public static final String PROP_VOLUME = "volume";
     public static final String PROP_SEEK = "seek";
     public static final String PROP_RATE = "rate";
+    /** Enable MediaController */
     public static final String PROP_CONTROLS = "controls";
+    /** Automatically hide navigation UI (currently only when MediaController enabled) */
+    public static final String PROP_AUTOHIDE_NAV = "autoHideNav";
 
     @Override
     public String getName() {
@@ -108,9 +111,14 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoView> {
         videoView.setRateModifier(rate);
     }
 
-    @ReactProp(name = PROP_CONTROLS, defaultBoolean = false)
+    @ReactProp(name = PROP_CONTROLS, defaultBoolean = true)
     public void setControls(final ReactVideoView videoView, final boolean showControls) {
         videoView.setShowControls(showControls);
+    }
+
+    @ReactProp(name = PROP_AUTOHIDE_NAV, defaultBoolean = true)
+    public void setAutoHideNav(final ReactVideoView videoView, final boolean autoHideNav) {
+        videoView.setAutoHideNav(autoHideNav);
     }
 
 }

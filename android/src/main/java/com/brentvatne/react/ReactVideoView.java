@@ -16,7 +16,7 @@ import com.yqritc.scalablevideoview.ScalableType;
 import com.yqritc.scalablevideoview.ScalableVideoView;
 
 public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnPreparedListener, MediaPlayer
-        .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl, ReactVideoMediaController.VisibilityListener {
+        .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener, MediaController.MediaPlayerControl, ReactVideoMediaController.VisibilityListener, View.OnSystemUiVisibilityChangeListener {
 
 
     public enum Events {
@@ -69,7 +69,8 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     private boolean mRepeat = false;
     private boolean mPaused = false;
     private boolean mMuted = false;
-    private boolean mShowControls = false;
+    private boolean mShowControls = true;
+    private boolean mAutoHideNav = true;
     private float mVolume = 1.0f;
     private float mRate = 1.0f;
 
@@ -78,6 +79,8 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     private int mVideoBufferedDuration = 0;
 
     private ReactVideoMediaController mController;
+
+    private int mLastSystemUiVis;
 
     public ReactVideoView(ThemedReactContext themedReactContext) {
         super(themedReactContext);
@@ -102,6 +105,8 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
             }
         };
         mProgressUpdateHandler.post(mProgressUpdateRunnable);
+
+        setOnSystemUiVisibilityChangeListener(this);
     }
 
     private void initializeMediaPlayerIfNeeded() {
@@ -210,6 +215,9 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         setMutedModifier(mMuted);
     }
 
+    public void setAutoHideNav(final boolean autoHideNav) {
+        mAutoHideNav = autoHideNav;
+    }
     public void setShowControls(final boolean showControls) {
         mShowControls = showControls;
         if (mShowControls) {
@@ -240,7 +248,21 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         setPausedModifier(mPaused);
         setMutedModifier(mMuted);
         setShowControls(mShowControls);
+        setAutoHideNav(mAutoHideNav);
 //        setRateModifier(mRate);
+    }
+
+    @Override
+    public void onSystemUiVisibilityChange(int visibility) {
+        int diff = mLastSystemUiVis ^ visibility;
+        mLastSystemUiVis = visibility;
+        if (mAutoHideNav) {
+            // If SYSTEM_UI_FLAG_HIDE_NAVIGATION removed from visibility flags...
+            if ((diff & SYSTEM_UI_FLAG_HIDE_NAVIGATION) != 0
+                    && (visibility & SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) {
+                setNavVisibility(true);
+            }
+        }
     }
 
     @Override
@@ -268,8 +290,6 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         event.putBoolean(EVENT_PROP_STEP_BACKWARD, true);
         event.putBoolean(EVENT_PROP_STEP_FORWARD, true);
         mEventEmitter.receiveEvent(getId(), Events.EVENT_LOAD.toString(), event);
-
-        setFullscreenMode(true);
 
         applyModifiers();
     }
@@ -322,62 +342,46 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         setShowControls(mShowControls);
     }
 
-    Runnable mNavHider = new Runnable() {
-        @Override public void run() {
-            setNavVisibility(false);
-        }
-    };
-
-    int mBaseSystemUiVisibility = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            | SYSTEM_UI_FLAG_LAYOUT_STABLE;
 
     @Override
     public void onControllerVisibilityChanged(boolean attached) {
-        setNavVisibility(attached);
-    }
-
-    void setBaseSystemUiVisibility(int visibility) {
-        mBaseSystemUiVisibility = visibility;
-    }
-
-    void setNavVisibility(boolean visible) {
-        int newVis = mBaseSystemUiVisibility;
-        if (!visible) {
-            newVis |= SYSTEM_UI_FLAG_LOW_PROFILE | SYSTEM_UI_FLAG_FULLSCREEN;
+        if (mAutoHideNav) {
+            setNavVisibility(attached);
         }
-        final boolean changed = newVis == getSystemUiVisibility();
+    }
 
-        // Unschedule any pending event to hide navigation if we are
-        // changing the visibility, or making the UI visible.
-        if (changed || visible) {
-            Handler h = getHandler();
-            if (h != null) {
-                h.removeCallbacks(mNavHider);
-            }
+
+    private void setNavVisibility(boolean visible) {
+        /**
+         * SYSTEM_UI_FLAG_LAYOUT_XXX: size content area to include area behind system bars (bars overlap)
+         * SYSTEM_UI_FLAG_LOW_PROFILE: dims status and nav bar
+         * SYSTEM_UI_FLAG_FULLSCREEN: hide status bar
+         * SYSTEM_UI_FLAG_HIDE_NAVIGATION: hide nav bar
+         * SYSTEM_UI_FLAG_IMMERSIVE (and SYSTEM_UI_FLAG_IMMERSIVE_STICKY): don't capture touch events near bars
+         */
+        int newVis = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                | SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                | SYSTEM_UI_FLAG_LAYOUT_STABLE;
+        if (!visible) {
+            newVis |= SYSTEM_UI_FLAG_FULLSCREEN | SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         }
         setSystemUiVisibility(newVis);
-
+        if (mController != null) {
+            // In case where we set nav visibility outside of listener that observes media controller visibility changes
+            setMediaControllerVisibility(visible);
+        }
     }
 
-    private void setFullscreenMode(boolean set) {
-        if (set) {
-            setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                            | View.SYSTEM_UI_FLAG_HIDE_NAVIGATION // hide nav bar
-                            | View.SYSTEM_UI_FLAG_FULLSCREEN // hide status bar
-                            | View.SYSTEM_UI_FLAG_IMMERSIVE
-            );
-
+    private void setMediaControllerVisibility(boolean setVisible) {
+        if (mController.isShowing()) {
+            if (!setVisible) {
+                mController.hide();
+            }
         } else {
-            setSystemUiVisibility(
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                            | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                            | View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-            );
+            if (setVisible) {
+                mController.show();
+            }
         }
-
     }
 
     private void toggleMediaControllerVisibility() {

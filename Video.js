@@ -160,6 +160,7 @@ Video.propTypes = {
   volume: PropTypes.number,
   rate: PropTypes.number,
   controls: PropTypes.bool,
+  autoHideNav: PropTypes.bool,
   currentTime: PropTypes.number,
   onLoadStart: PropTypes.func,
   onLoad: PropTypes.func,
