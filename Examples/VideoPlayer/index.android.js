@@ -26,14 +26,21 @@ class VideoPlayer extends Component {
     resizeMode: 'contain',
     duration: 0.0,
     currentTime: 0.0,
+    controls:true
   };
 
   onLoad(data) {
     this.setState({duration: data.duration});
   }
 
+  componentWillUpdate(nextProps, nextState) {
+
+  }
+
   onProgress(data) {
-    this.setState({currentTime: data.currentTime});
+    if (!this.state.controls) {
+      this.setState({currentTime: data.currentTime});
+    }
   }
 
   getCurrentTimePercentage() {
@@ -50,7 +57,7 @@ class VideoPlayer extends Component {
     return (
       <TouchableOpacity onPress={() => { this.setState({rate: rate}) }}>
         <Text style={[styles.controlOption, {fontWeight: isSelected ? "bold" : "normal"}]}>
-          {rate}x
+          {rate}
         </Text>
       </TouchableOpacity>
     )
@@ -80,30 +87,10 @@ class VideoPlayer extends Component {
     )
   }
 
-  render() {
-    const flexCompleted = this.getCurrentTimePercentage() * 100;
-    const flexRemaining = (1 - this.getCurrentTimePercentage()) * 100;
-
-    return (
-      <View style={styles.container}>
-        <TouchableOpacity style={styles.fullScreen} onPress={() => {
-          AndroidUtil.setFullScreenMode(!this.state.paused);
-          this.setState({paused: !this.state.paused})}}>
-          <Video source={{uri: "broadchurch"}}
-                 style={styles.fullScreen}
-                 rate={this.state.rate}
-                 paused={this.state.paused}
-                 volume={this.state.volume}
-                 muted={this.state.muted}
-                 resizeMode={this.state.resizeMode}
-                 onLoad={this.onLoad}
-                 onProgress={this.onProgress}
-                 onEnd={() => { console.log('Done!') }}
-                 repeat={true} />
-        </TouchableOpacity>
-
-        <View style={styles.controls}>
-          <View style={styles.generalControls}>
+  renderExtraControls() {
+     return (
+      <View style={styles.controls}>
+      <View style={styles.generalControls}>
             <View style={styles.rateControl}>
               {this.renderRateControl(0.25)}
               {this.renderRateControl(0.5)}
@@ -124,16 +111,28 @@ class VideoPlayer extends Component {
               {this.renderResizeModeControl('stretch')}
             </View>
           </View>
+          </View>)
+  }
 
-          <View style={styles.trackingControls}>
-            <View style={styles.progress}>
-              <View style={[styles.innerProgressCompleted, {flex: flexCompleted}]} />
-              <View style={[styles.innerProgressRemaining, {flex: flexRemaining}]} />
-            </View>
-          </View>
-        </View>
-      </View>
-    );
+  render() {
+    var video = (
+      <Video source={{uri: "broadchurch"}}
+                 style={styles.fullScreen}
+                 rate={this.state.rate}
+                 paused={this.state.paused}
+                 volume={this.state.volume}
+                 muted={this.state.muted}
+                 resizeMode={this.state.resizeMode}
+                 onLoad={this.onLoad}
+                 controls={this.state.controls}
+                 onProgress={this.onProgress}
+                 onEnd={() => { AndroidUtil.setFullScreenMode(false) }}
+                 repeat={false} />
+      );
+
+   var extraControls = this.renderExtraControls();
+   return (<View style={styles.container}>{video}{extraControls}</View>);
+  
   }
 }
 
@@ -156,7 +155,7 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
     borderRadius: 5,
     position: 'absolute',
-    bottom: 20,
+    top: 40,
     left: 20,
     right: 20,
   },

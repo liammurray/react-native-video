@@ -1,6 +1,8 @@
 package com.brentvatne.react;
 
+import android.annotation.TargetApi;
 import android.media.MediaPlayer;
+import android.os.Build;
 import android.view.MotionEvent;
 import android.widget.MediaController;
 import android.os.Handler;
@@ -206,14 +208,17 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         setMutedModifier(mMuted);
     }
 
-
     public void setShowControls(final boolean showControls) {
         mShowControls = showControls;
-        if (mShowControls && mController == null) {
-            mController = new MediaController(mThemedReactContext);
-            mController.setMediaPlayer(this);
-            mController.setAnchorView(this);
+        if (mShowControls) {
+            if (mController == null) {
+                mController = new MediaController(mThemedReactContext);
+                mController.setMediaPlayer(this);
+                mController.setAnchorView(this);
+            }
             mController.show();
+        } else if (mController != null) {
+            mController.hide();
         }
     }
 
@@ -238,7 +243,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         if (mController != null) {
-            toggleMediaControlsVisiblity();
+            toggleMediaControllerVisibility();
         }
         return false;
     }
@@ -309,10 +314,10 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         setSrc(mSrcUriString, mSrcType, mSrcIsNetwork, mSrcIsAsset);
+        setShowControls(mShowControls);
     }
 
-
-    private void toggleMediaControlsVisiblity() {
+    private void toggleMediaControllerVisibility() {
         if (mController.isShowing()) {
             mController.hide();
         } else {
@@ -324,7 +329,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     // Interface MediaController.MediaPlayerControl
     //////////////////////////////////////////////////////////////////
     public  int getBufferPercentage() {
-        return mVideoBufferedDuration * 100 / mVideoDuration;
+        return mVideoDuration > 0 ? mVideoBufferedDuration * 100 / mVideoDuration : mVideoDuration;
     }
 
     public void pause() {
