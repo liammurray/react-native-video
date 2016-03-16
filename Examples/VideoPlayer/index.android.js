@@ -11,6 +11,7 @@ import React, {
 
 import Video from 'react-native-video';
 import AndroidUtil from './AndroidUtil';
+import Orientation from 'react-native-orientation';
 
 const fullScreen = true;
 
@@ -33,8 +34,17 @@ class VideoPlayer extends Component {
     autoHideNav:fullScreen
   };
 
+  componentDidMount() {
+    //Orientation.lockToPortrait();
+    Orientation.lockToLandscape();
+    //Orientation.unlockAllOrientations(); 
+ 
+    //Orientation.addOrientationListener(this._orientationDidChange);
+  }
+
   onLoad(data) {
     this.setState({duration: data.duration});
+    Orientation.lockToLandscape();
   }
 
   onEnterFullscreen(data) {

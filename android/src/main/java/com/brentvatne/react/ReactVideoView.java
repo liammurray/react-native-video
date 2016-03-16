@@ -337,6 +337,11 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     @Override
     protected void onDetachedFromWindow() {
         mMediaPlayerValid = false;
+        if (mController != null) {
+            // Ensures controller view removed from window manager
+            mController.hide();
+            mController = null;
+        }
         super.onDetachedFromWindow();
     }
 

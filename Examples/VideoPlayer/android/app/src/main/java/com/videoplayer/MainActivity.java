@@ -1,9 +1,13 @@
 package com.videoplayer;
 
+import android.content.Intent;
+import android.content.res.Configuration;
+
 import com.facebook.react.ReactActivity;
 import com.brentvatne.react.ReactVideoPackage;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.shell.MainReactPackage;
+import com.github.yamill.orientation.OrientationPackage;
 
 import java.util.Arrays;
 import java.util.List;
@@ -35,7 +39,15 @@ public class MainActivity extends ReactActivity {
     @Override
     protected List<ReactPackage> getPackages() {
       return Arrays.<ReactPackage>asList(
-        new MainReactPackage(), new AndroidUtilPackage(),
+        new MainReactPackage(), new AndroidUtilPackage(), new OrientationPackage(this),
         new ReactVideoPackage());
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        Intent intent = new Intent("onConfigurationChanged");
+        intent.putExtra("newConfig", newConfig);
+        this.sendBroadcast(intent);
     }
 }
