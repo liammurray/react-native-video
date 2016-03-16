@@ -12,11 +12,14 @@ import React, {
 import Video from 'react-native-video';
 import AndroidUtil from './AndroidUtil';
 
+const fullScreen = true;
+
 class VideoPlayer extends Component {
   constructor(props) {
     super(props);
     this.onLoad = this.onLoad.bind(this);
     this.onProgress = this.onProgress.bind(this);
+    AndroidUtil.setFullScreenMode(fullScreen);
   }
 
   state = {
@@ -27,7 +30,7 @@ class VideoPlayer extends Component {
     duration: 0.0,
     currentTime: 0.0,
     controls:true,
-    autoHideNav:true
+    autoHideNav:fullScreen
   };
 
   onLoad(data) {

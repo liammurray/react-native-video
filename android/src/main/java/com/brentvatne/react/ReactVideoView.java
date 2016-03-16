@@ -227,7 +227,9 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
                 mController.setAnchorView(this);
                 mController.setVisibilityListener(this);
             }
-            mController.show();
+            if (!mController.isShowing()) {
+                mController.show();
+            }
         } else if (mController != null) {
             mController.hide();
         }
@@ -327,6 +329,9 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     public void onCompletion(MediaPlayer mp) {
         mMediaPlayerValid = false;
         mEventEmitter.receiveEvent(getId(), Events.EVENT_END.toString(), null);
+        if (mController != null) {
+            mController.show(0);
+        }
     }
 
     @Override
@@ -350,7 +355,6 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         }
     }
 
-
     private void setNavVisibility(boolean visible) {
         /**
          * SYSTEM_UI_FLAG_LAYOUT_XXX: size content area to include area behind system bars (bars overlap)
@@ -359,9 +363,13 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
          * SYSTEM_UI_FLAG_HIDE_NAVIGATION: hide nav bar
          * SYSTEM_UI_FLAG_IMMERSIVE (and SYSTEM_UI_FLAG_IMMERSIVE_STICKY): don't capture touch events near bars
          */
+
+        // These should be set by activity. If we change them later there are artifacts.
         int newVis = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
                 | SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
                 | SYSTEM_UI_FLAG_LAYOUT_STABLE;
+        newVis &= getSystemUiVisibility();
+
         if (!visible) {
             newVis |= SYSTEM_UI_FLAG_FULLSCREEN | SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         }
@@ -379,7 +387,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
             }
         } else {
             if (setVisible) {
-                mController.show();
+                mController.show(0);
             }
         }
     }
