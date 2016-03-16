@@ -29,4 +29,5 @@ android {
 dependencies {
     compile 'com.facebook.react:react-native:0.19.+'
     compile 'com.yqritc:android-scalablevideoview:1.0.1'
+    compile project(':mediacontroller')
 }

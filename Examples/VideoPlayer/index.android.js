@@ -13,13 +13,15 @@ import Video from 'react-native-video';
 import AndroidUtil from './AndroidUtil';
 import Orientation from 'react-native-orientation';
 
-const fullScreen = true;
+const fullScreen = false;
 
 class VideoPlayer extends Component {
   constructor(props) {
     super(props);
     this.onLoad = this.onLoad.bind(this);
     this.onProgress = this.onProgress.bind(this);
+    this.onEnterFullScreen = this.onEnterFullScreen.bind(this);
+    this.onExitFullScreen = this.onExitFullScreen.bind(this);
     AndroidUtil.setFullScreenMode(fullScreen);
   }
 
@@ -36,7 +38,7 @@ class VideoPlayer extends Component {
 
   componentDidMount() {
     //Orientation.lockToPortrait();
-    Orientation.lockToLandscape();
+    // Orientation.lockToLandscape();
     //Orientation.unlockAllOrientations(); 
  
     //Orientation.addOrientationListener(this._orientationDidChange);
@@ -44,17 +46,25 @@ class VideoPlayer extends Component {
 
   onLoad(data) {
     this.setState({duration: data.duration});
+  }
+
+  onEnterFullScreen(data) {
+    console.log("onEnterFullScreen")
+    AndroidUtil.setFullScreenMode(true);
     Orientation.lockToLandscape();
+    this.setState({autoHideNav: true});
   }
 
-  onEnterFullscreen(data) {
-  }
-
-  onExitFullscreen(data) {
+  onExitFullScreen(data) {
+    console.log("onExitFullScreen")
+    AndroidUtil.setFullScreenMode(false);
+    Orientation.unlockAllOrientations();
+    this.setState({autoHideNav: false});
   }
 
 
   onProgress(data) {
+    console.log("onProgress")
     if (!this.state.controls) {
       this.setState({currentTime: data.currentTime});
     }
@@ -141,6 +151,8 @@ class VideoPlayer extends Component {
                  muted={this.state.muted}
                  resizeMode={this.state.resizeMode}
                  onLoad={this.onLoad}
+                 onEnterFullScreen={this.onEnterFullScreen}
+                 onExitFullScreen={this.onExitFullScreen}
                  controls={this.state.controls}
                  autoHideNav={this.state.autoHideNav}
                  onProgress={this.onProgress}
