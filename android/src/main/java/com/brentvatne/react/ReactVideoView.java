@@ -178,6 +178,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
         if (mMediaPlayerValid) {
             setScalableType(resizeMode);
+            requestLayout();
             invalidate();
         }
     }
@@ -243,6 +244,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
                 if (!(parent instanceof FrameLayout)) {
                     throw new IllegalStateException("Parent must be FrameLayout");
                 }
+                // Controller anchor is the parent frame layout
                 mController.setAnchorView((ViewGroup)getParent());
                 mController.setVisibilityListener(this);
             }
@@ -359,7 +361,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         super.onSurfaceTextureSizeChanged(surface, width, height);
         Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureSizeChanged() " + width + "," + height);
         if (mMediaPlayerValid) {
-            // Force matrix update
+            // Force matrix update TODO Should be fixed in ScalableVideoView
             setScalableType(mResizeMode);
             invalidate();
         }
@@ -398,6 +400,11 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     protected void onDetachedFromWindow() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "onDetachedFromWindow() ");
         mMediaPlayerValid = false;
+        if (mController != null) {
+            // Media player is going away in base
+            mController.setMediaPlayer(null);
+            mController = null;
+        }
         super.onDetachedFromWindow();
     }
 
