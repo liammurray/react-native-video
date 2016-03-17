@@ -1,5 +1,6 @@
 package com.brentvatne.react;
 
+import android.graphics.SurfaceTexture;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.util.Log;
@@ -95,6 +96,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         initializeMediaPlayerIfNeeded();
         setSurfaceTextureListener(this);
 
+        //TODO run while playing
         mProgressUpdateRunnable = new Runnable() {
             @Override
             public void run() {
@@ -115,6 +117,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     private void initializeMediaPlayerIfNeeded() {
         if (mMediaPlayer == null) {
+            Log.d(ReactVideoViewManager.REACT_CLASS, "initializeMediaPlayerIfNeeded() doing init");
             mMediaPlayerValid = false;
             mMediaPlayer = new MediaPlayer();
             mMediaPlayer.setScreenOnWhilePlaying(true);
@@ -127,6 +130,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     }
 
     public void setSrc(final String uriString, final String type, final boolean isNetwork, final boolean isAsset) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "setSrc() " + uriString);
         mSrcUriString = uriString;
         mSrcType = type;
         mSrcIsNetwork = isNetwork;
@@ -177,6 +181,8 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
             invalidate();
         }
     }
+
+
 
     public void setRepeatModifier(final boolean repeat) {
         mRepeat = repeat;
@@ -290,6 +296,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     @Override
     public void onPrepared(MediaPlayer mp) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onPrepared() ");
         mMediaPlayerValid = true;
         mVideoDuration = mp.getDuration();
 
@@ -311,6 +318,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onError() " + what);
         WritableMap error = Arguments.createMap();
         error.putInt(EVENT_PROP_WHAT, what);
         error.putInt(EVENT_PROP_EXTRA, extra);
@@ -322,6 +330,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     @Override
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onBufferingUpdate() " + percent);
         mVideoBufferedDuration = (int) Math.round((double) (mVideoDuration * percent) / 100.0);
     }
 
@@ -340,8 +349,45 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
 
     @Override
+    public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
+        super.onSurfaceTextureAvailable(surfaceTexture, width, height);
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureAvailable() " + width + "," + height);
+    }
+
+    @Override
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+        super.onSurfaceTextureSizeChanged(surface, width, height);
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureSizeChanged() " + width + "," + height);
+        if (mMediaPlayerValid) {
+            // Force matrix update
+            setScalableType(mResizeMode);
+            invalidate();
+        }
+
+    }
+
+    @Override
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureDestroyed()");
+        return super.onSurfaceTextureDestroyed(surface);
+    }
+
+    @Override
+    public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+        //Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureUpdated()");
+        super.onSurfaceTextureUpdated(surface);
+    }
+
+    @Override
+    public void onVideoSizeChanged(MediaPlayer mp, int width, int height) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onVideoSizeChanged() " + width + "," + height);
+        super.onVideoSizeChanged(mp, width, height);
+    }
+
+    @Override
     public void onCompletion(MediaPlayer mp) {
-        mMediaPlayerValid = false;
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onCompletion() ");
+        //mMediaPlayerValid = false;
         mEventEmitter.receiveEvent(getContainerId(), Events.EVENT_END.toString(), null);
         if (mController != null) {
             mController.show(0);
@@ -350,17 +396,14 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     @Override
     protected void onDetachedFromWindow() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onDetachedFromWindow() ");
         mMediaPlayerValid = false;
-        if (mController != null) {
-            // Ensures controller view removed from window manager
-            mController.hide();
-            mController = null;
-        }
         super.onDetachedFromWindow();
     }
 
     @Override
     protected void onAttachedToWindow() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onAttachedToWindow() ");
         super.onAttachedToWindow();
         setSrc(mSrcUriString, mSrcType, mSrcIsNetwork, mSrcIsAsset);
         setShowControls(mShowControls);
@@ -435,6 +478,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     public void start() {
         super.start();
+
         if (mController != null) {
             mController.show();
         }

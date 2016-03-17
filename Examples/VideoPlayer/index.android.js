@@ -64,7 +64,6 @@ class VideoPlayer extends Component {
 
 
   onProgress(data) {
-    console.log("onProgress")
     if (!this.state.controls) {
       this.setState({currentTime: data.currentTime});
     }
