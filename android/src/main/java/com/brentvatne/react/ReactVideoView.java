@@ -249,10 +249,21 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
                 mController.setVisibilityListener(this);
             }
             if (!mController.isShowing()) {
-                mController.show();
+                showController();
             }
         } else if (mController != null) {
             mController.hide();
+        }
+    }
+
+    /**
+     * Shows with timeout if playing. Otherwise shows and persists.
+     */
+    private void showController() {
+        if (mMediaPlayerValid && this.isPlaying()) {
+            mController.show();
+        } else {
+            mController.show(0);
         }
     }
 
@@ -332,7 +343,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     @Override
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onBufferingUpdate() " + percent);
+        //Log.d(ReactVideoViewManager.REACT_CLASS, "onBufferingUpdate() " + percent);
         mVideoBufferedDuration = (int) Math.round((double) (mVideoDuration * percent) / 100.0);
     }
 
@@ -456,7 +467,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
             }
         } else {
             if (setVisible) {
-                mController.show(0);
+                showController();
             }
         }
     }
@@ -465,7 +476,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         if (mController.isShowing()) {
             mController.hide();
         } else {
-            mController.show();
+            showController();
         }
     }
 
