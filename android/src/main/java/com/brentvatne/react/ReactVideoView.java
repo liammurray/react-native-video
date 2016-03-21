@@ -18,6 +18,7 @@ import com.xealth.mediacontroller.MediaControllerView;
 import com.yqritc.scalablevideoview.ScalableType;
 import com.yqritc.scalablevideoview.ScalableVideoView;
 
+
 public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnPreparedListener, MediaPlayer
         .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener, MediaControllerView.VisibilityListener, View.OnSystemUiVisibilityChangeListener, MediaControllerView.MediaPlayerControl {
 
@@ -87,10 +88,13 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     private MediaControllerView mController;
 
-    public ReactVideoView(ThemedReactContext themedReactContext) {
+    private ReactVideoHostView hostView;
+
+    public ReactVideoView(ThemedReactContext themedReactContext, ReactVideoHostView hostView) {
         super(themedReactContext);
 
         mThemedReactContext = themedReactContext;
+        this.hostView = hostView;
         mEventEmitter = themedReactContext.getJSModule(RCTEventEmitter.class);
 
         initializeMediaPlayerIfNeeded();
@@ -129,7 +133,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         }
     }
 
-    public void setSrc(final String uriString, final String type, final boolean isNetwork, final boolean isAsset) {
+    public void  setSrc(final String uriString, final String type, final boolean isNetwork, final boolean isAsset) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "setSrc() " + uriString);
         mSrcUriString = uriString;
         mSrcType = type;
@@ -170,7 +174,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     }
 
     private int getContainerId() {
-        return ((View) getParent()).getId();
+        return hostView.getId();
     }
 
     public void setResizeModeModifier(final ScalableType resizeMode) {
@@ -247,6 +251,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
                 // Controller anchor is the parent frame layout
                 mController.setAnchorView((ViewGroup)getParent());
                 mController.setVisibilityListener(this);
+                //mController.enableFullScreenButton(this.hostView.canGoFullScreen());
             }
             if (!mController.isShowing()) {
                 showController();
@@ -371,11 +376,6 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
         super.onSurfaceTextureSizeChanged(surface, width, height);
         Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureSizeChanged() " + width + "," + height);
-        if (mMediaPlayerValid) {
-            // Force matrix update TODO Should be fixed in ScalableVideoView
-            setScalableType(mResizeMode);
-            invalidate();
-        }
 
     }
 
@@ -407,15 +407,25 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         }
     }
 
-    @Override
-    protected void onDetachedFromWindow() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onDetachedFromWindow() ");
+    // Container should call this when window detaches
+    public void doCleanup() {
         mMediaPlayerValid = false;
         if (mController != null) {
             // Media player is going away in base
             mController.setMediaPlayer(null);
             mController = null;
         }
+    }
+
+    // Container should call this when window attaches
+    public void doInit() {
+        setSrc(mSrcUriString, mSrcType, mSrcIsNetwork, mSrcIsAsset);
+        setShowControls(mShowControls);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onDetachedFromWindow() ");
         super.onDetachedFromWindow();
     }
 
@@ -423,8 +433,6 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     protected void onAttachedToWindow() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "onAttachedToWindow() ");
         super.onAttachedToWindow();
-        setSrc(mSrcUriString, mSrcType, mSrcIsNetwork, mSrcIsAsset);
-        setShowControls(mShowControls);
     }
 
 
@@ -514,19 +522,24 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         return true;
     }
 
-    //TODO setter
-    private boolean mIsFullScreen = false;
 
     @Override
     public boolean isFullScreen() {
-        return mIsFullScreen;
+        return hostView.isFullScreen();
     }
 
     @Override
     public void toggleFullScreen() {
-        mIsFullScreen = !mIsFullScreen;
-        Events event =  mIsFullScreen ? Events.EVENT_ENTER_FS : Events.EVENT_EXIT_FS;
-        mEventEmitter.receiveEvent(getContainerId(), event.toString(), null);
+        boolean changed = false;
+        if (isFullScreen()) {
+            changed = hostView.goEmbed();
+        } else {
+            changed = hostView.goFullScreen();
+        }
+        if (changed) {
+            Events event = isFullScreen() ? Events.EVENT_ENTER_FS : Events.EVENT_EXIT_FS;
+            mEventEmitter.receiveEvent(getContainerId(), event.toString(), null);
+        }
     }
 
     public  int getAudioSessionId() {

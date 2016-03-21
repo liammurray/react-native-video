@@ -1,0 +1,6 @@
+rootProject.name = 'RCTVideo'
+
+include ':mediacontroller'
+
+include ':Android-ScalableVideoView'
+project(':Android-ScalableVideoView').projectDir = new File(rootProject.projectDir, '../../Android-ScalableVideoView/library')

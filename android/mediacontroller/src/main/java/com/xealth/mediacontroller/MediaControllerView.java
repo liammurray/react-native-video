@@ -101,15 +101,9 @@ public class MediaControllerView extends FrameLayout {
      */
     public void setAnchorView(ViewGroup view) {
         mAnchor = view;
-
-        FrameLayout.LayoutParams frameParams = new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT
-        );
-
         removeAllViews();
         View v = makeControllerView();
-        addView(v, frameParams);
+        addView(v);
     }
 
     /**
@@ -230,7 +224,7 @@ public class MediaControllerView extends FrameLayout {
                                       int heightMeasureSpec){
         final int specWidth = MeasureSpec.getSize(widthMeasureSpec);
         final int specHeight = MeasureSpec.getSize(heightMeasureSpec);
-        Log.d("RCTVideo", "mw: " + minWidth + "; mh: " + minHeight + "; sw: " + specWidth + "; sh: " + specHeight);
+        Log.d("RCTVideo", "MediaControllerView: mw: " + minWidth + "; mh: " + minHeight + "; sw: " + specWidth + "; sh: " + specHeight);
     }
 
     /**

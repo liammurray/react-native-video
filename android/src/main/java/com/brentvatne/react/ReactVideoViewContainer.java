@@ -4,20 +4,20 @@ import android.widget.FrameLayout;
 
 import com.facebook.react.uimanager.ThemedReactContext;
 
+/**
+ * Frame that parents video view and media transport controller (player controls)
+ */
 public class ReactVideoViewContainer extends FrameLayout {
-
-    private ThemedReactContext mThemedReactContext;
 
     private ReactVideoView mVideoView;
 
-    public ReactVideoViewContainer(ThemedReactContext themedReactContext) {
+    public ReactVideoViewContainer(ThemedReactContext themedReactContext, ReactVideoHostView hostView) {
         super(themedReactContext);
-        mThemedReactContext = themedReactContext;
-        mVideoView = new ReactVideoView(themedReactContext);
-        addView(mVideoView, newFrameLayoutParams());
+        mVideoView = new ReactVideoView(themedReactContext, hostView);
+        addView(mVideoView, newFrameLayoutParamsForEmbed());
     }
 
-    private FrameLayout.LayoutParams newFrameLayoutParams() {
+    private FrameLayout.LayoutParams newFrameLayoutParamsForEmbed() {
         return new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
                 FrameLayout.LayoutParams.WRAP_CONTENT);
@@ -26,6 +26,7 @@ public class ReactVideoViewContainer extends FrameLayout {
     public ReactVideoView getVideoView() {
         return mVideoView;
     }
+
 }
 
 
