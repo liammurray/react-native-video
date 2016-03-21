@@ -409,6 +409,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     // Container should call this when window detaches
     public void doCleanup() {
+        release();
         mMediaPlayerValid = false;
         if (mController != null) {
             // Media player is going away in base
