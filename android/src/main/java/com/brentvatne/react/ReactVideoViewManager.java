@@ -33,15 +33,6 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoHostView>
     /** Automatically hide navigation UI (currently only when MediaController enabled) */
     public static final String PROP_AUTOHIDE_NAV = "autoHideNav";
 
-    private OverlayView mOverlayView;
-
-    public ReactVideoViewManager() {
-        this(null);
-    }
-    public ReactVideoViewManager(OverlayView overlayView) {
-        mOverlayView = overlayView;
-    }
-
     @Override
     public String getName() {
         return REACT_CLASS;
@@ -49,7 +40,7 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoHostView>
 
     @Override
     protected ReactVideoHostView createViewInstance(ThemedReactContext themedReactContext) {
-        return new ReactVideoHostView(themedReactContext, mOverlayView);
+        return new ReactVideoHostView(themedReactContext);
     }
 
     @Override

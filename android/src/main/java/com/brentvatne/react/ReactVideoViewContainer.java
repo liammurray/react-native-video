@@ -1,5 +1,6 @@
 package com.brentvatne.react;
 
+import android.graphics.Color;
 import android.widget.FrameLayout;
 
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -15,6 +16,7 @@ public class ReactVideoViewContainer extends FrameLayout {
         super(themedReactContext);
         mVideoView = new ReactVideoView(themedReactContext, hostView);
         addView(mVideoView, newFrameLayoutParamsForEmbed());
+        setBackgroundColor(Color.BLACK);
     }
 
     private FrameLayout.LayoutParams newFrameLayoutParamsForEmbed() {

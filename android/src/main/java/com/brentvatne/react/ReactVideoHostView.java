@@ -1,5 +1,7 @@
 package com.brentvatne.react;
 
+import android.annotation.TargetApi;
+import android.os.Build;
 import android.util.Log;
 import android.widget.FrameLayout;
 
@@ -10,21 +12,18 @@ import com.facebook.react.uimanager.ThemedReactContext;
  */
 public class ReactVideoHostView extends FrameLayout {
 
-    private ThemedReactContext mThemedReactContext;
-
     private ReactVideoViewContainer mVideoViewContainer;
 
     private OverlayView mOverlayView;
 
     private boolean mIsFullScreen = false;
 
-    private boolean mFirstPending = true;
+    private static final boolean enableAutoOverlay = true;
 
     public ReactVideoHostView(ThemedReactContext themedReactContext, OverlayView overlayView) {
         super(themedReactContext);
         mOverlayView = overlayView;
 
-        mThemedReactContext = themedReactContext;
         mVideoViewContainer = new ReactVideoViewContainer(themedReactContext, this);
         addView(mVideoViewContainer, newFrameLayoutParamsForEmbed());
     }
@@ -34,14 +33,28 @@ public class ReactVideoHostView extends FrameLayout {
         this(themedReactContext, null);
     }
 
+    private void ensureOverlayView() {
+        if (mOverlayView == null) {
+            mOverlayView = OverlayView.getOverlay(this);
+            if (mOverlayView == null) {
+                Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.ensureOverlayView() creating overlay");
+                mOverlayView = new OverlayView(getContext(), null);
+                mOverlayView.attach(this);
+            } else {
+                Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.ensureOverlayView() found overlay");
+            }
+        }
+    }
+
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.onAttachedToWindow() ");
-        if (mFirstPending) {
-            mVideoViewContainer.getVideoView().doInit();
-            mFirstPending = false;
+        if (enableAutoOverlay) {
+            ensureOverlayView();
         }
+        mVideoViewContainer.getVideoView().doInit();
     }
 
     @Override
@@ -49,7 +62,8 @@ public class ReactVideoHostView extends FrameLayout {
         super.onDetachedFromWindow();
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.onDetachedFromWindow() ");
         if (mIsFullScreen) {
-            ViewUtil.detachFromParent(mVideoViewContainer);
+            // May have issues doing it here since ViewGroup may be iterating over heirarchy
+            goEmbed();
         }
         mVideoViewContainer.getVideoView().doCleanup();
     }
@@ -62,8 +76,10 @@ public class ReactVideoHostView extends FrameLayout {
                 LayoutParams.WRAP_CONTENT);
     }
 
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     public boolean canGoFullScreen() {
-        return mOverlayView != null && mOverlayView.getWindowToken() != null;
+        return mOverlayView != null && mOverlayView.isAttachedToWindow();
+        //return mOverlayView != null && mOverlayView.getWindowToken() != null;
     }
 
     public boolean goFullScreen() {

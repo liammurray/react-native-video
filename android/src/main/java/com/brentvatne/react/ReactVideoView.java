@@ -1,15 +1,18 @@
 package com.brentvatne.react;
 
+import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
 
+import com.brentvatne.RCTVideo.R;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -100,7 +103,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         initializeMediaPlayerIfNeeded();
         setSurfaceTextureListener(this);
 
-        //TODO run while playing
+        //TODO run only while playing
         mProgressUpdateRunnable = new Runnable() {
             @Override
             public void run() {
@@ -242,20 +245,17 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         mShowControls = showControls;
         if (mShowControls) {
             if (mController == null) {
-                mController = new MediaControllerView(mThemedReactContext);
+                LayoutInflater inflater = (LayoutInflater) mThemedReactContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                mController = (MediaControllerView)inflater.inflate(R.layout.media_controller, null);
                 mController.setMediaPlayer(this);
-                ViewParent parent = getParent();
-                if (!(parent instanceof FrameLayout)) {
-                    throw new IllegalStateException("Parent must be FrameLayout");
-                }
-                // Controller anchor is the parent frame layout
-                mController.setAnchorView((ViewGroup)getParent());
+                // Controller anchor is the parent frame layout. Controller adds itself here on that assumption.
+                mController.setAnchorView((FrameLayout)getParent());
                 mController.setVisibilityListener(this);
-                //mController.enableFullScreenButton(this.hostView.canGoFullScreen());
             }
             if (!mController.isShowing()) {
                 showController();
             }
+            mController.enableFullScreenButton(this.hostView.canGoFullScreen());
         } else if (mController != null) {
             mController.hide();
         }
@@ -409,6 +409,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     // Container should call this when window detaches
     public void doCleanup() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doCleanup() ");
         release();
         mMediaPlayerValid = false;
         if (mController != null) {
@@ -420,19 +421,20 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     // Container should call this when window attaches
     public void doInit() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doInit() ");
         setSrc(mSrcUriString, mSrcType, mSrcIsNetwork, mSrcIsAsset);
         setShowControls(mShowControls);
     }
 
     @Override
     protected void onDetachedFromWindow() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onDetachedFromWindow() ");
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.onDetachedFromWindow() ");
         super.onDetachedFromWindow();
     }
 
     @Override
     protected void onAttachedToWindow() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onAttachedToWindow() ");
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.onAttachedToWindow() ");
         super.onAttachedToWindow();
     }
 

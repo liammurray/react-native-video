@@ -12,11 +12,6 @@ import java.util.Collections;
 import java.util.List;
 
 public class ReactVideoPackage implements ReactPackage {
-    private OverlayView mOverlayView;
-
-    public ReactVideoPackage(OverlayView overlayView) {
-        mOverlayView = overlayView;
-    }
 
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
@@ -30,6 +25,6 @@ public class ReactVideoPackage implements ReactPackage {
 
     @Override
     public List<ViewManager> createViewManagers(ReactApplicationContext reactContext) {
-        return Arrays.<ViewManager>asList(new ReactVideoViewManager(mOverlayView));
+        return Arrays.<ViewManager>asList(new ReactVideoViewManager());
     }
 }

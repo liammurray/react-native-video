@@ -10,6 +10,8 @@ import android.view.ViewGroup;
 import android.view.ViewParent;
 import android.widget.FrameLayout;
 
+import com.brentvatne.RCTVideo.R;
+
 
 /**
  * This is a view that is dynamically inserted into the DecorView frame so that
@@ -28,6 +30,7 @@ public final class OverlayView extends FrameLayout {
         this(context, attrs, android.R.id.content);
     }
 
+
     /**
      *
      * @param context
@@ -37,6 +40,16 @@ public final class OverlayView extends FrameLayout {
     public OverlayView(final Context context, final AttributeSet attrs, int parentViewGroupId) {
         super(context, attrs);
         this.parentViewGroupId = parentViewGroupId;
+        setId(R.id.overlayView);
+    }
+
+    public static OverlayView getOverlay(View view) {
+        final View rootView = view.getRootView();
+        View out = rootView.findViewById(R.id.overlayView);
+        if (out != null && !(out instanceof OverlayView) ) {
+            throw new IllegalStateException("Unexpected view type ");
+        }
+        return (OverlayView)out;
     }
 
     /**

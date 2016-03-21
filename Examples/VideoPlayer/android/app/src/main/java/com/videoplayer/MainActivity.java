@@ -20,7 +20,14 @@ public class MainActivity extends ReactActivity {
     private OverlayView mOverlayView;
 
     @Override
+    protected void onDestroy() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "MainActivity.onDestroy() ");
+        super.onDestroy();
+    }
+
+    @Override
     public void onAttachedToWindow() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "MainActivity.onAttachedToWindow() ");
         super.onAttachedToWindow();
         ensureOverlayView();
         mOverlayView.attach(getWindow().getDecorView());
@@ -28,6 +35,7 @@ public class MainActivity extends ReactActivity {
 
     private void ensureOverlayView() {
         if (mOverlayView == null) {
+            Log.d(ReactVideoViewManager.REACT_CLASS, "MainActivity.ensureOverlayView() creating overlay");
             mOverlayView = new OverlayView(this, null);
         }
     }
