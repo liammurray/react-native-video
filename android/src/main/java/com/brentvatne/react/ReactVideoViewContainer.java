@@ -50,6 +50,9 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     private RCTEventEmitter mEventEmitter;
 
+    private boolean autoStartOnTap = true;
+
+
     // Simple state
     enum State {
         PLAYING, PAUSED, STOPPED
@@ -97,7 +100,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
             if (!mController.isShowing()) {
                 showController();
             }
-            mController.enableFullScreenButton(mHostView.canGoFullScreen());
+            mController.setAnchorView(this);
             mController.setMediaPlayer(this);
             mController.setVisibilityListener(this);
         } else if (mController != null) {
@@ -122,7 +125,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onControllerVisibilityChanged(boolean attached) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onControllerVisibilityChanged(): " + mAutoHideNav);
+        //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onControllerVisibilityChanged(): autohide nav:" + mAutoHideNav);
         if (mAutoHideNav) {
             setNavVisibility(attached);
         }
@@ -156,15 +159,28 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent()");
+        //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent()");
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             // First finger down
             if (mController != null) {
-                toggleMediaControllerVisibility();
+                toggleMediaControllerVisibility(autoStartOnTap);
             }
         }
         // Do not allow events to pass through
         return true;
+    }
+
+    private void toggleMediaControllerVisibility(boolean autoStart) {
+        //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.toggleMediaControllerVisibility()");
+        if (mController.isShowing()) {
+            mController.hide();
+        } else {
+            showController();
+            mController.bringToFront();
+            if (autoStart && !State.PLAYING.equals(mState)) {
+                start();
+            }
+        }
     }
 
     @Override
@@ -205,14 +221,22 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         return mVideoView.getBufferPercentage();
     }
 
+    @Override
+    public boolean canGoFullScreen() {
+        return mHostView.canGoFullScreen();
+    }
+
+    @Override
     public  boolean canPause() {
         return true;
     }
 
+    @Override
     public  boolean canSeekBackward() {
         return true;
     }
 
+    @Override
     public  boolean canSeekForward() {
         return true;
     }
@@ -241,12 +265,20 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         }
     }
 
+    /**
+     * Called when host view attaches (but not when this window attaches during fs switch)
+     */
     public void doInit() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doInit()");
         mVideoView.doInit();
         setShowControls(mShowControls);
     }
 
+    /**
+     * Called when host view detaches (but not when this window detaches during fs switch)
+     */
     public void doCleanup() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doCleanup()");
         mVideoView.doCleanup();
         if (mController != null) {
             mController.hide();
@@ -271,7 +303,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
             mController.show(0);
         }
     }
-    
+
 
     private void setMediaControllerVisibility(boolean setVisible) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setMediaControllerVisibility()");
@@ -286,13 +318,9 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         }
     }
 
-    private void toggleMediaControllerVisibility() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.toggleMediaControllerVisibility()");
-        if (mController.isShowing()) {
-            mController.hide();
-        } else {
-            showController();
-        }
+    public void onPostFullScreenToggle(boolean wentFullScreen) {
+        showController();
+        ViewUtil.dump(this);
     }
 
     @Override

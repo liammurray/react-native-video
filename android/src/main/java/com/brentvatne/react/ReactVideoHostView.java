@@ -89,6 +89,7 @@ public class ReactVideoHostView extends FrameLayout {
             ViewUtil.detachFromParent(mVideoViewContainer);
             // Default FrameLayout params specify MATCH_PARENT
             mOverlayView.addView(mVideoViewContainer);
+            mVideoViewContainer.onPostFullScreenToggle(true);
             mIsFullScreen = true;
             return true;
         }
@@ -97,8 +98,10 @@ public class ReactVideoHostView extends FrameLayout {
 
     public boolean goEmbed() {
         if (mIsFullScreen) {
+            Log.d("RCTVideo", "ReactVideoHostView: goEmbed(): this win token: " + getWindowToken());
             ViewUtil.detachFromParent(mVideoViewContainer);
             addView(mVideoViewContainer, newFrameLayoutParamsForEmbed());
+            mVideoViewContainer.onPostFullScreenToggle(false);
             mIsFullScreen = false;
             return true;
         }

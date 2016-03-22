@@ -280,13 +280,11 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         mListener.onStop();
     }
 
-    // Container should call this when window attaches
     public void doInit() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doInit() ");
         setSrc(mSrcUriString, mSrcType, mSrcIsNetwork, mSrcIsAsset);
     }
 
-    // Container should call this when window detaches
     public void doCleanup() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doCleanup() ");
         release();

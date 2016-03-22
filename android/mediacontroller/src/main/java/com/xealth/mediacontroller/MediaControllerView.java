@@ -43,6 +43,7 @@ public class MediaControllerView extends LinearLayout {
     private static final int    FADE_OUT = 1;
     private static final int    SHOW_PROGRESS = 2;
     private boolean             mEnableForwardReverseButtons = false;
+    private boolean             mEnableFullScreenButton = true;
     private boolean             mListenersSet;
     private View.OnClickListener mNextListener, mPrevListener;
     StringBuilder               mFormatBuilder;
@@ -75,23 +76,13 @@ public class MediaControllerView extends LinearLayout {
         }
 
         mFullscreenButton = (ImageButton) findViewById(R.id.fullscreen);
-        if (mFullscreenButton != null) {
-            mFullscreenButton.setOnClickListener(mFullscreenListener);
-        }
-        enableFullScreenButton(mEnableFullScreen);
-
+        include(mFullscreenButton, mEnableFullScreenButton, mFullscreenListener);
 
         mFfwdButton = (ImageButton) findViewById(R.id.ffwd);
-        if (mFfwdButton != null) {
-            mFfwdButton.setOnClickListener(mFfwdListener);
-            mFfwdButton.setVisibility(mEnableForwardReverseButtons ? View.VISIBLE : View.GONE);
-        }
+        include(mFfwdButton, mEnableForwardReverseButtons, mFfwdListener);
 
         mRewButton = (ImageButton) findViewById(R.id.rew);
-        if (mRewButton != null) {
-            mRewButton.setOnClickListener(mRewListener);
-            mRewButton.setVisibility(mEnableForwardReverseButtons ? View.VISIBLE : View.GONE);
-        }
+        include(mRewButton, mEnableForwardReverseButtons, mRewListener);
 
         // By default these are hidden. They will be enabled when setPrevNextListeners() is called
         mNextButton = (ImageButton) findViewById(R.id.next);
@@ -157,18 +148,6 @@ public class MediaControllerView extends LinearLayout {
     }
 
 
-    private boolean mEnableFullScreen = true;
-
-    public void enableFullScreenButton(boolean enable) {
-        Log.d("RCTVideo", "MediaControllerView: enableFullScreenButton: " + enable);
-        mEnableFullScreen = enable;
-        if (mFullscreenButton != null) {
-            mFullscreenButton.setVisibility(enable ? View.VISIBLE : View.GONE);
-        }
-    }
-
-
-
     /**
      * Show the controller on screen. It will go away
      * automatically after 3 seconds of inactivity.
@@ -177,14 +156,24 @@ public class MediaControllerView extends LinearLayout {
         show(sDefaultTimeout);
     }
 
-    private void enable(View view, boolean enable) {
+    private static void enable(View view, boolean enable) {
         if (view != null) {
             view.setEnabled(enable);
         }
     }
 
+    private static void include(View view, boolean show, View.OnClickListener listener) {
+        if (view != null) {
+            view.setVisibility(show ? View.VISIBLE : View.GONE);
+            if (show) {
+                view.setOnClickListener(listener);
+            }
+        }
+    }
+
     private void syncButtonEnabledStates() {
         if (mPlayer != null) {
+            enable(mFullscreenButton, mPlayer.canGoFullScreen());
             enable(mPauseButton, mPlayer.canPause());
             enable(mRewButton, mPlayer.canSeekBackward());
             enable(mFfwdButton, mPlayer.canSeekForward());
@@ -222,9 +211,10 @@ public class MediaControllerView extends LinearLayout {
      * the controller until hide() is called.
      */
     public void show(int timeout) {
-        Log.d("RCTVideo", "MediaControllerView: show: " + timeout);
+        //Log.d("RCTVideo", "MediaControllerView: show: " + timeout);
         if (!mShowing) {
             setVisibility(View.VISIBLE);
+            bringToFront();
             mShowing = true;
             setProgress();
             if (mPauseButton != null) {
@@ -236,8 +226,9 @@ public class MediaControllerView extends LinearLayout {
         updatePausePlayButtonState();
         updateFullScreenButtonState();
 
-        mHandler.sendEmptyMessage(SHOW_PROGRESS);
+        //mHandler.removeMessages(SHOW_PROGRESS);
         mHandler.removeMessages(FADE_OUT);
+        mHandler.sendEmptyMessage(SHOW_PROGRESS);
         if (timeout != 0) {
             Message msg = mHandler.obtainMessage(FADE_OUT);
             mHandler.sendMessageDelayed(msg, timeout);
@@ -264,6 +255,71 @@ public class MediaControllerView extends LinearLayout {
             visibilityListener.onControllerVisibilityChanged(showing);
         }
     }
+
+    abstract class SimpleCallback implements Runnable {
+
+        private boolean isPending;
+        private int timeout;
+
+        public SimpleCallback(int timeout) {
+            this.timeout = timeout;
+        }
+
+        public boolean isPending() {
+            return isPending;
+        }
+
+        public void set() {
+            if (!isPending) {
+                extend();
+            }
+        }
+
+        public void extend() {
+            if (isPending) {
+                mHandler.removeCallbacks(this);
+            }
+            mHandler.postDelayed(this, timeout);
+            isPending = true;
+        }
+
+        public void cancel() {
+            if (isPending) {
+                mHandler.removeCallbacks(this);
+            }
+        }
+
+        abstract boolean doRun();
+
+        @Override
+        public final void run() {
+            isPending = false;
+            isPending = doRun();
+        }
+    }
+
+    SimpleCallback hideCallback = new SimpleCallback(sDefaultTimeout) {
+
+        @Override
+        public boolean doRun() {
+            hide();
+            return false;
+        }
+
+    };
+
+    SimpleCallback progressCallback = new SimpleCallback(sDefaultTimeout) {
+        private static final int UPDATE_INTERVAL = 250;
+        @Override
+        public boolean doRun() {
+            int pos = setProgress();
+            if (!mDragging && mShowing && mPlayer.isPlaying()) {
+                mHandler.postDelayed(this, UPDATE_INTERVAL - (pos % UPDATE_INTERVAL));
+                return true;
+            }
+            return false;
+        }
+    };
 
     /**
      * Remove the controller from the screen.
@@ -320,6 +376,7 @@ public class MediaControllerView extends LinearLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        Log.d("RCTVideo", "MediaControllerView::onTouchEvent()");
         extendTimeout();
         return true;
     }
@@ -371,6 +428,7 @@ public class MediaControllerView extends LinearLayout {
             // don't show the controls for volume adjustment
             return super.dispatchKeyEvent(event);
         } else if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU) {
+            Log.d("RCTVideo", "MediaControllerView::dispatchKeyEvent()");
             if (uniqueDown) {
                 hide();
             }
@@ -574,6 +632,7 @@ public class MediaControllerView extends LinearLayout {
         boolean canPause();
         boolean canSeekBackward();
         boolean canSeekForward();
+        boolean canGoFullScreen();
         boolean isFullScreen();
         void    toggleFullScreen();
     }
