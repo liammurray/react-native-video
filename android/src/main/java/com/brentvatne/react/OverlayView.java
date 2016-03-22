@@ -1,10 +1,9 @@
 package com.brentvatne.react;
 
 import android.content.Context;
-import android.graphics.Rect;
-import android.graphics.Region;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -30,11 +29,7 @@ public final class OverlayView extends FrameLayout {
         this(context, attrs, android.R.id.content);
     }
 
-
     /**
-     *
-     * @param context
-     * @param attrs
      * @param parentViewGroupId id of parent view group that we add this view to
      */
     public OverlayView(final Context context, final AttributeSet attrs, int parentViewGroupId) {
@@ -51,6 +46,7 @@ public final class OverlayView extends FrameLayout {
         }
         return (OverlayView)out;
     }
+
 
     /**
      * Ensures overlay is added to view hierarchy associated with given view.
@@ -77,6 +73,8 @@ public final class OverlayView extends FrameLayout {
         super.onDetachedFromWindow();
         Log.d(ReactVideoViewManager.REACT_CLASS, "OverlayView.onDetachedFromWindow() ");
     }
+
+
 
     /**
      * Removes overlay from content frame and disassociates with target view. 

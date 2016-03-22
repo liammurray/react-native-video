@@ -37,6 +37,8 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     private PlayerEventListener mListener;
 
+    private static final int PROGRESS_UPDATE_INTERVAL = 250;
+
     public ReactVideoView(ThemedReactContext context, PlayerEventListener eventListener) {
         super(context);
 
@@ -55,7 +57,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
                 if (mMediaPlayerValid) {
                     mListener.onProgress(mMediaPlayer.getCurrentPosition(), mVideoBufferedDuration);
                 }
-                mProgressUpdateHandler.postDelayed(mProgressUpdateRunnable, 250);
+                mProgressUpdateHandler.postDelayed(mProgressUpdateRunnable, PROGRESS_UPDATE_INTERVAL);
             }
         };
         mProgressUpdateHandler.post(mProgressUpdateRunnable);

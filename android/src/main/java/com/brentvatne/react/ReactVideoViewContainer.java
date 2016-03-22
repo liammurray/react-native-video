@@ -3,6 +3,7 @@ package com.brentvatne.react;
 import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -48,7 +49,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     private int mLastSystemUiVis;
 
     private RCTEventEmitter mEventEmitter;
-    
+
     // Simple state
     enum State {
         PLAYING, PAUSED, STOPPED
@@ -156,10 +157,14 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent()");
-        if (mController != null) {
-            toggleMediaControllerVisibility();
+        if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+            // First finger down
+            if (mController != null) {
+                toggleMediaControllerVisibility();
+            }
         }
-        return false;
+        // Do not allow events to pass through
+        return true;
     }
 
     @Override
@@ -266,7 +271,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
             mController.show(0);
         }
     }
-
+    
 
     private void setMediaControllerVisibility(boolean setVisible) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setMediaControllerVisibility()");
