@@ -56,14 +56,14 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         addView(mVideoView, newFrameLayoutParamsForEmbed());
         setBackgroundColor(Color.BLACK);
         mEventEmitter = context.getJSModule(RCTEventEmitter.class);
-
         setOnSystemUiVisibilityChangeListener(this);
+        //ensureController();
     }
 
     private FrameLayout.LayoutParams newFrameLayoutParamsForEmbed() {
         return new FrameLayout.LayoutParams(
-                FrameLayout.LayoutParams.WRAP_CONTENT,
-                FrameLayout.LayoutParams.WRAP_CONTENT);
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT);
     }
 
     public void setAutoHideNav(final boolean autoHideNav) {
@@ -82,6 +82,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     /** Enables or disables controller */
     public void setShowControls(final boolean showControls) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setShowControls(): " + showControls);
         mShowControls = showControls;
         if (mShowControls) {
             ensureController();
@@ -99,6 +100,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onSystemUiVisibilityChange(int visibility) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onSystemUiVisibilityChange(): " + visibility);
         int diff = mLastSystemUiVis ^ visibility;
         mLastSystemUiVis = visibility;
         if (mAutoHideNav) {
@@ -112,12 +114,14 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onControllerVisibilityChanged(boolean attached) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onControllerVisibilityChanged(): " + mAutoHideNav);
         if (mAutoHideNav) {
             setNavVisibility(attached);
         }
     }
 
     private void setNavVisibility(boolean visible) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setNavVisibility(): " + visible);
         /**
          * SYSTEM_UI_FLAG_LAYOUT_XXX: size content area to include area behind system bars (bars overlap)
          * SYSTEM_UI_FLAG_LOW_PROFILE: dims status and nav bar
@@ -144,6 +148,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent()");
         if (mController != null) {
             toggleMediaControllerVisibility();
         }
@@ -244,6 +249,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      * Shows with timeout if playing. Otherwise shows and persists.
      */
     private void showController() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.showController()");
         if (mVideoView.isPlaying()) {
             mController.show();
         } else {
@@ -253,6 +259,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
 
     private void setMediaControllerVisibility(boolean setVisible) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setMediaControllerVisibility()");
         if (mController.isShowing()) {
             if (!setVisible) {
                 mController.hide();
@@ -265,6 +272,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     }
 
     private void toggleMediaControllerVisibility() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.toggleMediaControllerVisibility()");
         if (mController.isShowing()) {
             mController.hide();
         } else {

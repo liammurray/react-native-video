@@ -155,31 +155,20 @@ public class MediaControllerView extends LinearLayout {
         show(sDefaultTimeout);
     }
 
-    /**
-     * Disable pause or seek buttons if the stream cannot be paused or seeked.
-     * This requires the control interface to be a MediaPlayerControlExt
-     */
-    private void disableUnsupportedButtons() {
-        if (mPlayer == null) {
-            return;
+    private void enable(View view, boolean enable) {
+        if (view != null) {
+            view.setEnabled(enable);
         }
+    }
 
-        try {
-            if (mPauseButton != null && !mPlayer.canPause()) {
-                mPauseButton.setEnabled(false);
-            }
-            if (mRewButton != null && !mPlayer.canSeekBackward()) {
-                mRewButton.setEnabled(false);
-            }
-            if (mFfwdButton != null && !mPlayer.canSeekForward()) {
-                mFfwdButton.setEnabled(false);
-            }
-        } catch (IncompatibleClassChangeError ex) {
-            // We were given an old version of the interface, that doesn't have
-            // the canPause/canSeekXYZ methods. This is OK, it just means we
-            // assume the media can be paused and seeked, and so we don't disable
-            // the buttons.
+    private void syncButtonEnabledStates() {
+        if (mPlayer != null) {
+            enable(mPauseButton, mPlayer.canPause());
+            enable(mRewButton, mPlayer.canSeekBackward());
+            enable(mFfwdButton, mPlayer.canSeekForward());
         }
+        enable(mNextButton, mNextListener != null);
+        enable(mPrevButton, mPrevListener != null);
     }
 
     @Override
@@ -197,6 +186,7 @@ public class MediaControllerView extends LinearLayout {
         Log.d("RCTVideo", "MediaControllerView: minw: " + minWidth + "; minh: " + minHeight + "; sw: " + specWidth + "; sh: " + specHeight);
     }
 
+
     /**
      * Show the controller on screen. It will go away
      * automatically after 'timeout' milliseconds of inactivity.
@@ -204,12 +194,8 @@ public class MediaControllerView extends LinearLayout {
      * the controller until hide() is called.
      */
     public void show(int timeout) {
+        Log.d("RCTVideo", "MediaControllerView: show: " + timeout);
         if (!mShowing && mAnchor != null) {
-            setProgress();
-            if (mPauseButton != null) {
-                mPauseButton.requestFocus();
-            }
-            disableUnsupportedButtons();
 
             FrameLayout.LayoutParams tlp = new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
@@ -217,8 +203,12 @@ public class MediaControllerView extends LinearLayout {
                     Gravity.BOTTOM
             );
             mAnchor.addView(this, tlp);
-            requestLayout();
             mShowing = true;
+            setProgress();
+            if (mPauseButton != null) {
+                mPauseButton.requestFocus();
+            }
+            syncButtonEnabledStates();
             notifyVisibilityChanged(true);
         }
         updatePausePlay();
@@ -496,26 +486,10 @@ public class MediaControllerView extends LinearLayout {
 
     @Override
     public void setEnabled(boolean enabled) {
-        if (mPauseButton != null) {
-            mPauseButton.setEnabled(enabled);
-        }
-        if (mFfwdButton != null) {
-            mFfwdButton.setEnabled(enabled);
-        }
-        if (mRewButton != null) {
-            mRewButton.setEnabled(enabled);
-        }
-        if (mNextButton != null) {
-            mNextButton.setEnabled(enabled && mNextListener != null);
-        }
-        if (mPrevButton != null) {
-            mPrevButton.setEnabled(enabled && mPrevListener != null);
-        }
-        if (mProgress != null) {
-            mProgress.setEnabled(enabled);
-        }
-        disableUnsupportedButtons();
         super.setEnabled(enabled);
+        if (enabled) {
+            syncButtonEnabledStates();
+        }
     }
 
     private View.OnClickListener mRewListener = new View.OnClickListener() {
