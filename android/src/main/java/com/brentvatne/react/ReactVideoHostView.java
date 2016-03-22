@@ -3,6 +3,7 @@ package com.brentvatne.react;
 import android.annotation.TargetApi;
 import android.os.Build;
 import android.util.Log;
+import android.view.View;
 import android.widget.FrameLayout;
 
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -101,6 +102,8 @@ public class ReactVideoHostView extends FrameLayout {
             Log.d("RCTVideo", "ReactVideoHostView: goEmbed(): this win token: " + getWindowToken());
             ViewUtil.detachFromParent(mVideoViewContainer);
             addView(mVideoViewContainer, newFrameLayoutParamsForEmbed());
+            mVideoViewContainer.setVisibility(View.INVISIBLE);
+            mVideoViewContainer.setVisibility(View.VISIBLE);
             mVideoViewContainer.onPostFullScreenToggle(false);
             mIsFullScreen = false;
             return true;

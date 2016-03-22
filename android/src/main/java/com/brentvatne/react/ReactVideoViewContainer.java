@@ -176,7 +176,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
             mController.hide();
         } else {
             showController();
-            mController.bringToFront();
+            //mController.bringToFront();
             if (autoStart && !State.PLAYING.equals(mState)) {
                 start();
             }
@@ -227,8 +227,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     }
 
     @Override
-    public  boolean canPause() {
-        return true;
+    public  boolean canPlay() {
+        return mVideoView.isPrepared();
     }
 
     @Override
@@ -321,6 +321,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     public void onPostFullScreenToggle(boolean wentFullScreen) {
         showController();
         ViewUtil.dump(this);
+        mVideoView.invalidate();
+        mVideoView.requestLayout();
     }
 
     @Override

@@ -1,5 +1,8 @@
 package com.xealth.mediacontroller;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.ObjectAnimator;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.Handler;
@@ -12,6 +15,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
+import android.view.animation.TranslateAnimation;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -31,30 +35,30 @@ import java.util.Locale;
 public class MediaControllerView extends LinearLayout {
     private static final String TAG = "VideoControllerView";
 
-    private MediaPlayerControl  mPlayer;
-    private Context             mContext;
-    private ViewGroup           mAnchor;
+    private MediaPlayerControl mPlayer;
+    private Context mContext;
+    private ViewGroup mAnchor;
 
-    private ProgressBar         mProgress;
-    private TextView            mEndTime, mCurrentTime;
-    private boolean             mShowing;
-    private boolean             mDragging;
-    private static final int    sDefaultTimeout = 3000;
-    private static final int    FADE_OUT = 1;
-    private static final int    SHOW_PROGRESS = 2;
-    private boolean             mEnableForwardReverseButtons = false;
-    private boolean             mEnableFullScreenButton = true;
-    private boolean             mListenersSet;
+    private ProgressBar mProgress;
+    private TextView mEndTime, mCurrentTime;
+    private boolean mShowing;
+    private boolean mDragging;
+    private static final int sDefaultTimeout = 3000;
+    private static final int FADE_OUT = 1;
+    private static final int SHOW_PROGRESS = 2;
+    private boolean mEnableForwardReverseButtons = false;
+    private boolean mEnableFullScreenButton = true;
+    private boolean mListenersSet;
     private View.OnClickListener mNextListener, mPrevListener;
-    StringBuilder               mFormatBuilder;
-    Formatter                   mFormatter;
-    private ImageButton         mPauseButton;
-    private ImageButton         mFfwdButton;
-    private ImageButton         mRewButton;
-    private ImageButton         mNextButton;
-    private ImageButton         mPrevButton;
-    private ImageButton         mFullscreenButton;
-    private Handler             mHandler = new MessageHandler(this);
+    StringBuilder mFormatBuilder;
+    Formatter mFormatter;
+    private ImageButton mPlayPauseButton;
+    private ImageButton mFfwdButton;
+    private ImageButton mRewButton;
+    private ImageButton mNextButton;
+    private ImageButton mPrevButton;
+    private ImageButton mFullscreenButton;
+    private Handler mHandler = new MessageHandler(this);
 
     public MediaControllerView(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -69,11 +73,8 @@ public class MediaControllerView extends LinearLayout {
     @Override
     public void onFinishInflate() {
         super.onFinishInflate();
-        mPauseButton = (ImageButton) findViewById(R.id.pause);
-        if (mPauseButton != null) {
-            mPauseButton.requestFocus();
-            mPauseButton.setOnClickListener(mPauseListener);
-        }
+        mPlayPauseButton = (ImageButton) findViewById(R.id.pause);
+        include(mPlayPauseButton, true, mPlayPauseListener);
 
         mFullscreenButton = (ImageButton) findViewById(R.id.fullscreen);
         include(mFullscreenButton, mEnableFullScreenButton, mFullscreenListener);
@@ -84,15 +85,12 @@ public class MediaControllerView extends LinearLayout {
         mRewButton = (ImageButton) findViewById(R.id.rew);
         include(mRewButton, mEnableForwardReverseButtons, mRewListener);
 
-        // By default these are hidden. They will be enabled when setPrevNextListeners() is called
+        // These are hidden if no listener
         mNextButton = (ImageButton) findViewById(R.id.next);
-        if (mNextButton != null && !mListenersSet) {
-            mNextButton.setVisibility(View.GONE);
-        }
+        include(mNextButton, mNextListener != null, mNextListener);
         mPrevButton = (ImageButton) findViewById(R.id.prev);
-        if (mPrevButton != null && !mListenersSet) {
-            mPrevButton.setVisibility(View.GONE);
-        }
+        include(mPrevButton, mPrevListener != null, mPrevListener);
+
 
         mProgress = (ProgressBar) findViewById(R.id.mediacontroller_progress);
         if (mProgress != null) {
@@ -107,9 +105,6 @@ public class MediaControllerView extends LinearLayout {
         mCurrentTime = (TextView) findViewById(R.id.time_current);
         mFormatBuilder = new StringBuilder();
         mFormatter = new Formatter(mFormatBuilder, Locale.getDefault());
-
-        installPrevNextListeners();
-
     }
 
     public void setMediaPlayer(MediaPlayerControl player) {
@@ -129,10 +124,12 @@ public class MediaControllerView extends LinearLayout {
 
     /**
      * Set the FrameLayout that acts as the anchor for the control view
+     *
      * @param view The view to which to anchor the controller when it is visible.
      */
     public void setAnchorView(FrameLayout view) {
         if (mAnchor == view) {
+            // Already current anchor
             return;
         }
         mAnchor = view;
@@ -174,7 +171,7 @@ public class MediaControllerView extends LinearLayout {
     private void syncButtonEnabledStates() {
         if (mPlayer != null) {
             enable(mFullscreenButton, mPlayer.canGoFullScreen());
-            enable(mPauseButton, mPlayer.canPause());
+            enable(mPlayPauseButton, mPlayer.canPlay());
             enable(mRewButton, mPlayer.canSeekBackward());
             enable(mFfwdButton, mPlayer.canSeekForward());
         }
@@ -190,8 +187,8 @@ public class MediaControllerView extends LinearLayout {
     }
 
     private static void logMeasureInfo(int minWidth,
-                                      int minHeight, int widthMeasureSpec,
-                                      int heightMeasureSpec){
+                                       int minHeight, int widthMeasureSpec,
+                                       int heightMeasureSpec) {
         final int specWidth = MeasureSpec.getSize(widthMeasureSpec);
         final int specHeight = MeasureSpec.getSize(heightMeasureSpec);
         Log.d("RCTVideo", "MediaControllerView: minw: " + minWidth + "; minh: " + minHeight + "; sw: " + specWidth + "; sh: " + specHeight);
@@ -199,8 +196,31 @@ public class MediaControllerView extends LinearLayout {
 
     private void extendTimeout() {
         if (mHandler.hasMessages(FADE_OUT)) {
-           show();
+            show();
         }
+    }
+
+    static final int FADE_ANIM_DURATION = 250;
+
+    private static void hideView(final View view) {
+        ObjectAnimator anim = ObjectAnimator.ofFloat(view, "alpha", 0);
+        anim.setDuration(FADE_ANIM_DURATION);
+        anim.addListener(new
+        AnimatorListenerAdapter() {
+            public void onAnimationEnd (Animator animation){
+                view.setAlpha(1);
+                view.setVisibility(View.INVISIBLE);
+            }
+        }
+        );
+        anim.start();
+    }
+
+    private static void showView(View view){
+        ObjectAnimator anim = ObjectAnimator.ofFloat(view, "alpha", 0f, 1f);
+        anim.setDuration(FADE_ANIM_DURATION);
+        anim.start();
+        view.setVisibility(View.VISIBLE);
     }
 
 
@@ -213,12 +233,11 @@ public class MediaControllerView extends LinearLayout {
     public void show(int timeout) {
         //Log.d("RCTVideo", "MediaControllerView: show: " + timeout);
         if (!mShowing) {
-            setVisibility(View.VISIBLE);
-            bringToFront();
+            showView(this);
             mShowing = true;
             setProgress();
-            if (mPauseButton != null) {
-                mPauseButton.requestFocus();
+            if (mPlayPauseButton != null) {
+                mPlayPauseButton.requestFocus();
             }
             syncButtonEnabledStates();
             notifyVisibilityChanged(true);
@@ -326,7 +345,7 @@ public class MediaControllerView extends LinearLayout {
      */
     public void hide() {
         if (mShowing) {
-            setVisibility(View.INVISIBLE);
+            hideView(this);
             mHandler.removeMessages(SHOW_PROGRESS);
             mShowing = false;
             notifyVisibilityChanged(false);
@@ -353,23 +372,26 @@ public class MediaControllerView extends LinearLayout {
         if (mPlayer == null || mDragging) {
             return 0;
         }
-
-        int position = mPlayer.getCurrentPosition();
-        int duration = mPlayer.getDuration();
+        int position = 0;
+        int duration = 0;
+        if (mPlayer.canPlay()) {
+            position = mPlayer.getCurrentPosition();
+            duration = mPlayer.getDuration();
+        }
         if (mProgress != null) {
-            if (duration > 0) {
-                // use long to avoid overflow
-                long pos = 1000L * position / duration;
-                mProgress.setProgress( (int) pos);
-            }
+            // use long to avoid overflow
+            long pos = (duration > 0) ? 1000L * position / duration : 0;
+            mProgress.setProgress( (int) pos);
             int percent = mPlayer.getBufferPercentage();
             mProgress.setSecondaryProgress(percent * 10);
         }
 
-        if (mEndTime != null)
+        if (mEndTime != null) {
             mEndTime.setText(stringForTime(duration));
-        if (mCurrentTime != null)
+        }
+        if (mCurrentTime != null) {
             mCurrentTime.setText(stringForTime(position));
+        }
 
         return position;
     }
@@ -402,8 +424,8 @@ public class MediaControllerView extends LinearLayout {
             if (uniqueDown) {
                 doPauseResume();
                 extendTimeout();
-                if (mPauseButton != null) {
-                    mPauseButton.requestFocus();
+                if (mPlayPauseButton != null) {
+                    mPlayPauseButton.requestFocus();
                 }
             }
             return true;
@@ -439,7 +461,7 @@ public class MediaControllerView extends LinearLayout {
         return super.dispatchKeyEvent(event);
     }
 
-    private View.OnClickListener mPauseListener = new View.OnClickListener() {
+    private View.OnClickListener mPlayPauseListener = new View.OnClickListener() {
         public void onClick(View v) {
             doPauseResume();
             extendTimeout();
@@ -454,14 +476,14 @@ public class MediaControllerView extends LinearLayout {
     };
 
     public void updatePausePlayButtonState() {
-        if (mPauseButton == null || mPlayer == null) {
+        if (mPlayPauseButton == null || mPlayer == null) {
             return;
         }
 
         if (mPlayer.isPlaying()) {
-            mPauseButton.setImageResource(R.drawable.ic_media_pause);
+            mPlayPauseButton.setImageResource(R.drawable.ic_media_pause);
         } else {
-            mPauseButton.setImageResource(R.drawable.ic_media_play);
+            mPlayPauseButton.setImageResource(R.drawable.ic_media_play);
         }
     }
 
@@ -593,32 +615,12 @@ public class MediaControllerView extends LinearLayout {
         }
     };
 
-    private void installPrevNextListeners() {
-        if (mNextButton != null) {
-            mNextButton.setOnClickListener(mNextListener);
-            mNextButton.setEnabled(mNextListener != null);
-        }
-
-        if (mPrevButton != null) {
-            mPrevButton.setOnClickListener(mPrevListener);
-            mPrevButton.setEnabled(mPrevListener != null);
-        }
-    }
 
     public void setPrevNextListeners(View.OnClickListener next, View.OnClickListener prev) {
         mNextListener = next;
         mPrevListener = prev;
-        mListenersSet = true;
-
-        installPrevNextListeners();
-
-        if (mNextButton != null) {
-            mNextButton.setVisibility(View.VISIBLE);
-        }
-        if (mPrevButton != null) {
-            mPrevButton.setVisibility(View.VISIBLE);
-        }
-
+        include(mNextButton, mNextListener != null, mNextListener);
+        include(mPrevButton, mPrevListener != null, mPrevListener);
     }
 
     public interface MediaPlayerControl {
@@ -629,7 +631,7 @@ public class MediaControllerView extends LinearLayout {
         void    seekTo(int pos);
         boolean isPlaying();
         int     getBufferPercentage();
-        boolean canPause();
+        boolean canPlay();
         boolean canSeekBackward();
         boolean canSeekForward();
         boolean canGoFullScreen();

@@ -4,6 +4,7 @@ import android.graphics.SurfaceTexture;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.util.Log;
+import android.view.View;
 
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.yqritc.scalablevideoview.ScalableType;
@@ -16,8 +17,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener {
 
     private ThemedReactContext mContext;
-    private Handler mProgressUpdateHandler = new Handler();
-    private Runnable mProgressUpdateRunnable = null;
+    private Handler mHandler = new Handler();
 
     private String mSrcUriString = null;
     private String mSrcType = "mp4";
@@ -31,7 +31,8 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     private float mVolume = 1.0f;
     private float mRate = 1.0f;
 
-    private boolean mMediaPlayerValid = false; // True if mMediaPlayer is in prepared, started, or paused state.
+    /** Media player prepared (has playable content)? */
+    private boolean mMediaPlayerValid = false;
     private int mVideoDuration = 0;
     private int mVideoBufferedDuration = 0;
 
@@ -49,20 +50,28 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         initializeMediaPlayerIfNeeded();
         setSurfaceTextureListener(this);
 
-        //TODO run only while playing
-        mProgressUpdateRunnable = new Runnable() {
-            @Override
-            public void run() {
-
-                if (mMediaPlayerValid) {
-                    mListener.onProgress(mMediaPlayer.getCurrentPosition(), mVideoBufferedDuration);
-                }
-                mProgressUpdateHandler.postDelayed(mProgressUpdateRunnable, PROGRESS_UPDATE_INTERVAL);
-            }
-        };
-        mProgressUpdateHandler.post(mProgressUpdateRunnable);
-
     }
+
+    private final Runnable mProgressUpdateRunnable = new Runnable() {
+        @Override
+        public void run() {
+            if (mMediaPlayerValid) {
+                //TODO mVideoBufferedDuration?
+                mListener.onProgress(mMediaPlayer.getCurrentPosition(), mVideoBufferedDuration);
+                mHandler.postDelayed(mProgressUpdateRunnable, PROGRESS_UPDATE_INTERVAL);
+            }
+        }
+    };
+    private void startProgressTimer(boolean start) {
+        mHandler.removeCallbacks(mProgressUpdateRunnable);
+        final boolean beginCallbacks = start && enableProgressCallbacks;
+        Log.d(ReactVideoViewManager.REACT_CLASS, "startProgressTimer() start: " + beginCallbacks);
+        if (beginCallbacks) {
+            mHandler.post(mProgressUpdateRunnable);
+        }
+    }
+
+    private static boolean enableProgressCallbacks = true;
 
     private void initializeMediaPlayerIfNeeded() {
         if (mMediaPlayer != null) {
@@ -132,6 +141,10 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         }
     }
 
+    public boolean isPrepared() {
+        return mMediaPlayerValid;
+    }
+
     public void setPausedModifier(final boolean paused) {
         mPaused = paused;
 
@@ -153,12 +166,14 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     @Override
     public void start() {
         super.start();
+        startProgressTimer(true);
         mListener.onPlay();
     }
 
     @Override
     public void pause() {
         super.pause();
+        startProgressTimer(false);
         mListener.onPause();
     }
 
@@ -277,6 +292,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     @Override
     public void onCompletion(MediaPlayer mp) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "onCompletion() ");
+        startProgressTimer(false);
         mListener.onStop();
     }
 
