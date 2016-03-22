@@ -54,7 +54,7 @@ public class ReactVideoHostView extends FrameLayout {
         if (enableAutoOverlay) {
             ensureOverlayView();
         }
-        mVideoViewContainer.getVideoView().doInit();
+        mVideoViewContainer.doInit();
     }
 
     @Override
@@ -65,7 +65,7 @@ public class ReactVideoHostView extends FrameLayout {
             // May have issues doing it here since ViewGroup may be iterating over heirarchy
             goEmbed();
         }
-        mVideoViewContainer.getVideoView().doCleanup();
+        mVideoViewContainer.doCleanup();
     }
 
 
@@ -104,6 +104,11 @@ public class ReactVideoHostView extends FrameLayout {
         }
         return false;
     }
+
+    public ReactVideoViewContainer getContainerView() {
+        return mVideoViewContainer;
+    }
+
     public ReactVideoView getVideoView() {
         return mVideoViewContainer.getVideoView();
     }
@@ -111,6 +116,7 @@ public class ReactVideoHostView extends FrameLayout {
     public boolean isFullScreen() {
         return mIsFullScreen;
     }
+
 }
 
 

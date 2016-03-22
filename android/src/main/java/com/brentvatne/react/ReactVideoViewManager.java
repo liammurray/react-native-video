@@ -1,6 +1,6 @@
 package com.brentvatne.react;
 
-import com.brentvatne.react.ReactVideoView.Events;
+import com.brentvatne.react.ReactVideo.Events;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
@@ -111,12 +111,12 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoHostView>
 
     @ReactProp(name = PROP_CONTROLS, defaultBoolean = true)
     public void setControls(final ReactVideoHostView hostView, final boolean showControls) {
-        hostView.getVideoView().setShowControls(showControls);
+        hostView.getContainerView().setShowControls(showControls);
     }
 
     @ReactProp(name = PROP_AUTOHIDE_NAV, defaultBoolean = true)
     public void setAutoHideNav(final ReactVideoHostView hostView, final boolean autoHideNav) {
-        hostView.getVideoView().setAutoHideNav(autoHideNav);
+        hostView.getContainerView().setAutoHideNav(autoHideNav);
     }
 
 }

@@ -1,72 +1,21 @@
 package com.brentvatne.react;
 
-import android.content.Context;
 import android.graphics.SurfaceTexture;
 import android.media.MediaPlayer;
 import android.os.Handler;
 import android.util.Log;
-import android.view.LayoutInflater;
-import android.view.MotionEvent;
-import android.view.View;
-import android.view.ViewGroup;
-import android.view.ViewParent;
-import android.widget.FrameLayout;
 
-import com.brentvatne.RCTVideo.R;
-import com.facebook.react.bridge.Arguments;
-import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
-import com.facebook.react.uimanager.events.RCTEventEmitter;
-import com.xealth.mediacontroller.MediaControllerView;
 import com.yqritc.scalablevideoview.ScalableType;
 import com.yqritc.scalablevideoview.ScalableVideoView;
 
-
+/**
+ * Actual video surface view. Also ownas and encapsulates actual media player.
+ */
 public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnPreparedListener, MediaPlayer
-        .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener, MediaControllerView.VisibilityListener, View.OnSystemUiVisibilityChangeListener, MediaControllerView.MediaPlayerControl {
+        .OnErrorListener, MediaPlayer.OnBufferingUpdateListener, MediaPlayer.OnCompletionListener {
 
-
-    public enum Events {
-        EVENT_LOAD_START("onVideoLoadStart"),
-        EVENT_LOAD("onVideoLoad"),
-        EVENT_ENTER_FS("onVideoEnterFullScreen"),
-        EVENT_EXIT_FS("onVideoExitFullScreen"),
-        EVENT_ERROR("onVideoError"),
-        EVENT_PROGRESS("onVideoProgress"),
-        EVENT_SEEK("onVideoSeek"),
-        EVENT_END("onVideoEnd");
-
-        private final String mName;
-
-        Events(final String name) {
-            mName = name;
-        }
-
-        @Override
-        public String toString() {
-            return mName;
-        }
-    }
-
-    public static final String EVENT_PROP_FAST_FORWARD = "canPlayFastForward";
-    public static final String EVENT_PROP_SLOW_FORWARD = "canPlaySlowForward";
-    public static final String EVENT_PROP_SLOW_REVERSE = "canPlaySlowReverse";
-    public static final String EVENT_PROP_REVERSE = "canPlayReverse";
-    public static final String EVENT_PROP_STEP_FORWARD = "canStepForward";
-    public static final String EVENT_PROP_STEP_BACKWARD = "canStepBackward";
-
-    public static final String EVENT_PROP_DURATION = "duration";
-    public static final String EVENT_PROP_PLAYABLE_DURATION = "playableDuration";
-    public static final String EVENT_PROP_CURRENT_TIME = "currentTime";
-    public static final String EVENT_PROP_SEEK_TIME = "seekTime";
-
-    public static final String EVENT_PROP_ERROR = "error";
-    public static final String EVENT_PROP_WHAT = "what";
-    public static final String EVENT_PROP_EXTRA = "extra";
-
-    private ThemedReactContext mThemedReactContext;
-    private RCTEventEmitter mEventEmitter;
-
+    private ThemedReactContext mContext;
     private Handler mProgressUpdateHandler = new Handler();
     private Runnable mProgressUpdateRunnable = null;
 
@@ -78,8 +27,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     private boolean mRepeat = false;
     private boolean mPaused = false;
     private boolean mMuted = false;
-    private boolean mShowControls = true;
-    private boolean mAutoHideNav = true;
+
     private float mVolume = 1.0f;
     private float mRate = 1.0f;
 
@@ -87,18 +35,14 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     private int mVideoDuration = 0;
     private int mVideoBufferedDuration = 0;
 
-    private int mLastSystemUiVis;
+    private PlayerEventListener mListener;
 
-    private MediaControllerView mController;
+    public ReactVideoView(ThemedReactContext context, PlayerEventListener eventListener) {
+        super(context);
 
-    private ReactVideoHostView hostView;
+        mContext = context;
 
-    public ReactVideoView(ThemedReactContext themedReactContext, ReactVideoHostView hostView) {
-        super(themedReactContext);
-
-        mThemedReactContext = themedReactContext;
-        this.hostView = hostView;
-        mEventEmitter = themedReactContext.getJSModule(RCTEventEmitter.class);
+        mListener = eventListener;
 
         initializeMediaPlayerIfNeeded();
         setSurfaceTextureListener(this);
@@ -109,31 +53,29 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
             public void run() {
 
                 if (mMediaPlayerValid) {
-                    WritableMap event = Arguments.createMap();
-                    event.putDouble(EVENT_PROP_CURRENT_TIME, mMediaPlayer.getCurrentPosition() / 1000.0);
-                    event.putDouble(EVENT_PROP_PLAYABLE_DURATION, mVideoBufferedDuration / 1000.0); //TODO:mBufferUpdateRunnable
-                    mEventEmitter.receiveEvent(getContainerId(), Events.EVENT_PROGRESS.toString(), event);
+                    mListener.onProgress(mMediaPlayer.getCurrentPosition(), mVideoBufferedDuration);
                 }
                 mProgressUpdateHandler.postDelayed(mProgressUpdateRunnable, 250);
             }
         };
         mProgressUpdateHandler.post(mProgressUpdateRunnable);
 
-        setOnSystemUiVisibilityChangeListener(this);
     }
 
     private void initializeMediaPlayerIfNeeded() {
-        if (mMediaPlayer == null) {
-            Log.d(ReactVideoViewManager.REACT_CLASS, "initializeMediaPlayerIfNeeded() doing init");
-            mMediaPlayerValid = false;
-            mMediaPlayer = new MediaPlayer();
-            mMediaPlayer.setScreenOnWhilePlaying(true);
-            mMediaPlayer.setOnVideoSizeChangedListener(this);
-            mMediaPlayer.setOnErrorListener(this);
-            mMediaPlayer.setOnPreparedListener(this);
-            mMediaPlayer.setOnBufferingUpdateListener(this);
-            mMediaPlayer.setOnCompletionListener(this);
+        if (mMediaPlayer != null) {
+            return;
         }
+        Log.d(ReactVideoViewManager.REACT_CLASS, "initializeMediaPlayerIfNeeded() doing init");
+        mMediaPlayerValid = false;
+        mMediaPlayer = new MediaPlayer();
+        mMediaPlayer.setScreenOnWhilePlaying(true);
+        mMediaPlayer.setOnVideoSizeChangedListener(this);
+        mMediaPlayer.setOnErrorListener(this);
+        mMediaPlayer.setOnPreparedListener(this);
+        mMediaPlayer.setOnBufferingUpdateListener(this);
+        mMediaPlayer.setOnCompletionListener(this);
+
     }
 
     public void  setSrc(final String uriString, final String type, final boolean isNetwork, final boolean isAsset) {
@@ -154,10 +96,10 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
             if (isNetwork || isAsset) {
                 setDataSource(uriString);
             } else {
-                setRawData(mThemedReactContext.getResources().getIdentifier(
+                setRawData(mContext.getResources().getIdentifier(
                         uriString,
                         "raw",
-                        mThemedReactContext.getPackageName()
+                        mContext.getPackageName()
                 ));
             }
         } catch (Exception e) {
@@ -165,31 +107,19 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
             return;
         }
 
-        WritableMap src = Arguments.createMap();
-        src.putString(ReactVideoViewManager.PROP_SRC_URI, uriString);
-        src.putString(ReactVideoViewManager.PROP_SRC_TYPE, type);
-        src.putBoolean(ReactVideoViewManager.PROP_SRC_IS_NETWORK, isNetwork);
-        WritableMap event = Arguments.createMap();
-        event.putMap(ReactVideoViewManager.PROP_SRC, src);
-        mEventEmitter.receiveEvent(getContainerId(), Events.EVENT_LOAD_START.toString(), event);
+        mListener.onLoad(uriString, type, isNetwork);
 
         prepareAsync(this);
     }
 
-    private int getContainerId() {
-        return hostView.getId();
-    }
-
     public void setResizeModeModifier(final ScalableType resizeMode) {
         mResizeMode = resizeMode;
-
         if (mMediaPlayerValid) {
             setScalableType(resizeMode);
             requestLayout();
             invalidate();
         }
     }
-
 
 
     public void setRepeatModifier(final boolean repeat) {
@@ -218,6 +148,23 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         }
     }
 
+    @Override
+    public void start() {
+        super.start();
+        mListener.onPlay();
+    }
+
+    @Override
+    public void pause() {
+        super.pause();
+        mListener.onPause();
+    }
+
+    public void setVolume(float leftVolume, float rightVolume) {
+        super.setVolume(leftVolume, rightVolume);
+        //mListener.onVolume(leftVolume, rightVolume); //TODO
+    }
+
 
     public void setMutedModifier(final boolean muted) {
         mMuted = muted;
@@ -231,45 +178,12 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         } else {
             setVolume(mVolume, mVolume);
         }
+        //mListener.onMute(muted); //TODO
     }
 
     public void setVolumeModifier(final float volume) {
         mVolume = volume;
         setMutedModifier(mMuted);
-    }
-
-    public void setAutoHideNav(final boolean autoHideNav) {
-        mAutoHideNav = autoHideNav;
-    }
-    public void setShowControls(final boolean showControls) {
-        mShowControls = showControls;
-        if (mShowControls) {
-            if (mController == null) {
-                LayoutInflater inflater = (LayoutInflater) mThemedReactContext.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                mController = (MediaControllerView)inflater.inflate(R.layout.media_controller, null);
-                mController.setMediaPlayer(this);
-                // Controller anchor is the parent frame layout. Controller adds itself here on that assumption.
-                mController.setAnchorView((FrameLayout)getParent());
-                mController.setVisibilityListener(this);
-            }
-            if (!mController.isShowing()) {
-                showController();
-            }
-            mController.enableFullScreenButton(this.hostView.canGoFullScreen());
-        } else if (mController != null) {
-            mController.hide();
-        }
-    }
-
-    /**
-     * Shows with timeout if playing. Otherwise shows and persists.
-     */
-    private void showController() {
-        if (mMediaPlayerValid && this.isPlaying()) {
-            mController.show();
-        } else {
-            mController.show(0);
-        }
     }
 
     public void setRateModifier(final float rate) {
@@ -286,31 +200,11 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         setRepeatModifier(mRepeat);
         setPausedModifier(mPaused);
         setMutedModifier(mMuted);
-        setShowControls(mShowControls);
-        setAutoHideNav(mAutoHideNav);
 //        setRateModifier(mRate);
     }
 
-    @Override
-    public void onSystemUiVisibilityChange(int visibility) {
-        int diff = mLastSystemUiVis ^ visibility;
-        mLastSystemUiVis = visibility;
-        if (mAutoHideNav) {
-            // If SYSTEM_UI_FLAG_HIDE_NAVIGATION removed from visibility flags...
-            if ((diff & SYSTEM_UI_FLAG_HIDE_NAVIGATION) != 0
-                    && (visibility & SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) {
-                setNavVisibility(true);
-            }
-        }
-    }
 
-    @Override
-    public boolean onTouchEvent(MotionEvent ev) {
-        if (mController != null) {
-            toggleMediaControllerVisibility();
-        }
-        return false;
-    }
+
 
     @Override
     public void onPrepared(MediaPlayer mp) {
@@ -318,31 +212,16 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         mMediaPlayerValid = true;
         mVideoDuration = mp.getDuration();
 
-        WritableMap event = Arguments.createMap();
-        event.putDouble(EVENT_PROP_DURATION, mVideoDuration / 1000.0);
-        event.putDouble(EVENT_PROP_CURRENT_TIME, mp.getCurrentPosition() / 1000.0);
-        // TODO: Actually check if you can.
-        event.putBoolean(EVENT_PROP_FAST_FORWARD, true);
-        event.putBoolean(EVENT_PROP_SLOW_FORWARD, true);
-        event.putBoolean(EVENT_PROP_SLOW_REVERSE, true);
-        event.putBoolean(EVENT_PROP_REVERSE, true);
-        event.putBoolean(EVENT_PROP_FAST_FORWARD, true);
-        event.putBoolean(EVENT_PROP_STEP_BACKWARD, true);
-        event.putBoolean(EVENT_PROP_STEP_FORWARD, true);
-        mEventEmitter.receiveEvent(getContainerId(), Events.EVENT_LOAD.toString(), event);
+        mListener.onLoadComplete(mp.getCurrentPosition(), mVideoDuration);
 
+        // This will play/pause based on initial setting for "paused"
         applyModifiers();
     }
 
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "onError() " + what);
-        WritableMap error = Arguments.createMap();
-        error.putInt(EVENT_PROP_WHAT, what);
-        error.putInt(EVENT_PROP_EXTRA, extra);
-        WritableMap event = Arguments.createMap();
-        event.putMap(EVENT_PROP_ERROR, error);
-        mEventEmitter.receiveEvent(getContainerId(), Events.EVENT_ERROR.toString(), event);
+        mListener.onError(what, extra);
         return true;
     }
 
@@ -350,18 +229,14 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
         //Log.d(ReactVideoViewManager.REACT_CLASS, "onBufferingUpdate() " + percent);
         mVideoBufferedDuration = (int) Math.round((double) (mVideoDuration * percent) / 100.0);
+        mListener.onBuffer(percent);
     }
 
     @Override
     public void seekTo(int msec) {
-
         if (mMediaPlayerValid) {
-            WritableMap event = Arguments.createMap();
-            event.putDouble(EVENT_PROP_CURRENT_TIME, getCurrentPosition() / 1000.0);
-            event.putDouble(EVENT_PROP_SEEK_TIME, msec / 1000.0);
-            mEventEmitter.receiveEvent(getContainerId(), Events.EVENT_SEEK.toString(), event);
-
             super.seekTo(msec);
+            mListener.onSeek(msec, getCurrentPosition());
         }
     }
 
@@ -400,11 +275,13 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     @Override
     public void onCompletion(MediaPlayer mp) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "onCompletion() ");
-        //mMediaPlayerValid = false;
-        mEventEmitter.receiveEvent(getContainerId(), Events.EVENT_END.toString(), null);
-        if (mController != null) {
-            mController.show(0);
-        }
+        mListener.onStop();
+    }
+
+    // Container should call this when window attaches
+    public void doInit() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doInit() ");
+        setSrc(mSrcUriString, mSrcType, mSrcIsNetwork, mSrcIsAsset);
     }
 
     // Container should call this when window detaches
@@ -412,140 +289,11 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doCleanup() ");
         release();
         mMediaPlayerValid = false;
-        if (mController != null) {
-            // Media player is going away in base
-            mController.setMediaPlayer(null);
-            mController = null;
-        }
-    }
-
-    // Container should call this when window attaches
-    public void doInit() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doInit() ");
-        setSrc(mSrcUriString, mSrcType, mSrcIsNetwork, mSrcIsAsset);
-        setShowControls(mShowControls);
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.onDetachedFromWindow() ");
-        super.onDetachedFromWindow();
-    }
-
-    @Override
-    protected void onAttachedToWindow() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.onAttachedToWindow() ");
-        super.onAttachedToWindow();
     }
 
 
-    @Override
-    public void onControllerVisibilityChanged(boolean attached) {
-        if (mAutoHideNav) {
-            setNavVisibility(attached);
-        }
-    }
-
-    private void setNavVisibility(boolean visible) {
-        /**
-         * SYSTEM_UI_FLAG_LAYOUT_XXX: size content area to include area behind system bars (bars overlap)
-         * SYSTEM_UI_FLAG_LOW_PROFILE: dims status and nav bar
-         * SYSTEM_UI_FLAG_FULLSCREEN: hide status bar
-         * SYSTEM_UI_FLAG_HIDE_NAVIGATION: hide nav bar
-         * SYSTEM_UI_FLAG_IMMERSIVE (and SYSTEM_UI_FLAG_IMMERSIVE_STICKY): don't capture touch events near bars
-         */
-
-        // These should be set by activity. If we change them later there are artifacts.
-        int newVis = SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                | SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                | SYSTEM_UI_FLAG_LAYOUT_STABLE;
-        newVis &= getSystemUiVisibility();
-
-        if (!visible) {
-            newVis |= SYSTEM_UI_FLAG_FULLSCREEN | SYSTEM_UI_FLAG_HIDE_NAVIGATION;
-        }
-        setSystemUiVisibility(newVis);
-        if (mController != null) {
-            // In case where we set nav visibility outside of listener that observes media controller visibility changes
-            setMediaControllerVisibility(visible);
-        }
-    }
-
-    private void setMediaControllerVisibility(boolean setVisible) {
-        if (mController.isShowing()) {
-            if (!setVisible) {
-                mController.hide();
-            }
-        } else {
-            if (setVisible) {
-                showController();
-            }
-        }
-    }
-
-    private void toggleMediaControllerVisibility() {
-        if (mController.isShowing()) {
-            mController.hide();
-        } else {
-            showController();
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////
-    // Interface MediaController.MediaPlayerControl
-    //////////////////////////////////////////////////////////////////
     public  int getBufferPercentage() {
         return mVideoDuration > 0 ? mVideoBufferedDuration * 100 / mVideoDuration : mVideoDuration;
     }
 
-    public void pause() {
-        super.pause();
-        if (mController != null) {
-            mController.show(0);
-        }
-    }
-
-    public void start() {
-        super.start();
-
-        if (mController != null) {
-            mController.show();
-        }
-    }
-
-    public  boolean canPause() {
-        return true;
-    }
-
-    public  boolean canSeekBackward() {
-        return true;
-    }
-
-    public  boolean canSeekForward() {
-        return true;
-    }
-
-
-    @Override
-    public boolean isFullScreen() {
-        return hostView.isFullScreen();
-    }
-
-    @Override
-    public void toggleFullScreen() {
-        boolean changed = false;
-        if (isFullScreen()) {
-            changed = hostView.goEmbed();
-        } else {
-            changed = hostView.goFullScreen();
-        }
-        if (changed) {
-            Events event = isFullScreen() ? Events.EVENT_ENTER_FS : Events.EVENT_EXIT_FS;
-            mEventEmitter.receiveEvent(getContainerId(), event.toString(), null);
-        }
-    }
-
-    public  int getAudioSessionId() {
-        return mMediaPlayer.getAudioSessionId();
-    }
 }
