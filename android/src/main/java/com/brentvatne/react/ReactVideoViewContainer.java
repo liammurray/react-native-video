@@ -48,6 +48,13 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     private int mLastSystemUiVis;
 
     private RCTEventEmitter mEventEmitter;
+    
+    // Simple state
+    enum State {
+        PLAYING, PAUSED, STOPPED
+    }
+    private State mState = State.STOPPED;
+
 
     public ReactVideoViewContainer(ThemedReactContext context, ReactVideoHostView hostView) {
         super(context);
@@ -172,6 +179,9 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public int getCurrentPosition() {
+        if (State.STOPPED.equals(mState)) {
+            return 0;
+        }
         return  mVideoView.getCurrentPosition();
     }
 
@@ -283,6 +293,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public void onPause() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onPause()");
+        mState = State.PAUSED;
         if (mController != null) {
             mController.show(0);
         }
@@ -291,7 +302,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public void onStop() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onStop()");
-        //mMediaPlayerValid = false;
+        mState = State.STOPPED;
         mEventEmitter.receiveEvent(getHostViewId(), ReactVideo.Events.EVENT_END.toString(), null);
         if (mController != null) {
             mController.show(0);
@@ -332,6 +343,16 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     }
 
     @Override
+    public void onVolume(float leftVolume, float rightVolume) {
+
+    }
+
+    @Override
+    public void onMute(boolean muted) {
+
+    }
+
+    @Override
     public void onLoad(String uriString, String type, boolean isNetwork) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onLoad()");
         WritableMap src = Arguments.createMap();
@@ -363,6 +384,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public void onPlay() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onPlay()");
+        mState = State.PLAYING;
         if (mController != null) {
             mController.show();
         }

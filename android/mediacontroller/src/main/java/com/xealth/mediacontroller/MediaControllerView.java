@@ -11,6 +11,7 @@ import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewParent;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -122,8 +123,17 @@ public class MediaControllerView extends LinearLayout {
 
     public void setMediaPlayer(MediaPlayerControl player) {
         mPlayer = player;
-        updatePausePlay();
-        updateFullScreen();
+        updatePausePlayButtonState();
+        updateFullScreenButtonState();
+    }
+
+    private static void detachFromParent(View view) {
+        if (view != null) {
+            ViewParent parent = view.getParent();
+            if (parent != null) {
+                ((ViewGroup) parent).removeView(view);
+            }
+        }
     }
 
     /**
@@ -131,7 +141,19 @@ public class MediaControllerView extends LinearLayout {
      * @param view The view to which to anchor the controller when it is visible.
      */
     public void setAnchorView(FrameLayout view) {
+        if (mAnchor == view) {
+            return;
+        }
         mAnchor = view;
+        detachFromParent(this);
+        if (mAnchor != null) {
+            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    Gravity.BOTTOM
+            );
+            mAnchor.addView(this, params);
+        }
     }
 
 
@@ -186,6 +208,12 @@ public class MediaControllerView extends LinearLayout {
         Log.d("RCTVideo", "MediaControllerView: minw: " + minWidth + "; minh: " + minHeight + "; sw: " + specWidth + "; sh: " + specHeight);
     }
 
+    private void extendTimeout() {
+        if (mHandler.hasMessages(FADE_OUT)) {
+           show();
+        }
+    }
+
 
     /**
      * Show the controller on screen. It will go away
@@ -195,14 +223,8 @@ public class MediaControllerView extends LinearLayout {
      */
     public void show(int timeout) {
         Log.d("RCTVideo", "MediaControllerView: show: " + timeout);
-        if (!mShowing && mAnchor != null) {
-
-            FrameLayout.LayoutParams tlp = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    Gravity.BOTTOM
-            );
-            mAnchor.addView(this, tlp);
+        if (!mShowing) {
+            setVisibility(View.VISIBLE);
             mShowing = true;
             setProgress();
             if (mPauseButton != null) {
@@ -211,14 +233,10 @@ public class MediaControllerView extends LinearLayout {
             syncButtonEnabledStates();
             notifyVisibilityChanged(true);
         }
-        updatePausePlay();
-        updateFullScreen();
+        updatePausePlayButtonState();
+        updateFullScreenButtonState();
 
-        // cause the progress bar to be updated even if mShowing
-        // was already true.  This happens, for example, if we're
-        // paused with the progress bar showing the user hits play.
         mHandler.sendEmptyMessage(SHOW_PROGRESS);
-
         mHandler.removeMessages(FADE_OUT);
         if (timeout != 0) {
             Message msg = mHandler.obtainMessage(FADE_OUT);
@@ -251,18 +269,13 @@ public class MediaControllerView extends LinearLayout {
      * Remove the controller from the screen.
      */
     public void hide() {
-        if (mAnchor == null) {
-            return;
+        if (mShowing) {
+            setVisibility(View.INVISIBLE);
+            mHandler.removeMessages(SHOW_PROGRESS);
+            mShowing = false;
+            notifyVisibilityChanged(false);
         }
 
-        try {
-            mAnchor.removeView(this);
-            mHandler.removeMessages(SHOW_PROGRESS);
-        } catch (IllegalArgumentException ex) {
-            Log.w("MediaController", "already removed");
-        }
-        mShowing = false;
-        notifyVisibilityChanged(false);
     }
 
     private String stringForTime(int timeMs) {
@@ -307,13 +320,13 @@ public class MediaControllerView extends LinearLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        show(sDefaultTimeout);
+        extendTimeout();
         return true;
     }
 
     @Override
     public boolean onTrackballEvent(MotionEvent ev) {
-        show(sDefaultTimeout);
+        extendTimeout();
         return false;
     }
 
@@ -331,7 +344,7 @@ public class MediaControllerView extends LinearLayout {
                 || keyCode == KeyEvent.KEYCODE_SPACE) {
             if (uniqueDown) {
                 doPauseResume();
-                show(sDefaultTimeout);
+                extendTimeout();
                 if (mPauseButton != null) {
                     mPauseButton.requestFocus();
                 }
@@ -340,16 +353,16 @@ public class MediaControllerView extends LinearLayout {
         } else if (keyCode == KeyEvent.KEYCODE_MEDIA_PLAY) {
             if (uniqueDown && !mPlayer.isPlaying()) {
                 mPlayer.start();
-                updatePausePlay();
-                show(sDefaultTimeout);
+                updatePausePlayButtonState();
+                extendTimeout();
             }
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_MEDIA_STOP
                 || keyCode == KeyEvent.KEYCODE_MEDIA_PAUSE) {
             if (uniqueDown && mPlayer.isPlaying()) {
                 mPlayer.pause();
-                updatePausePlay();
-                show(sDefaultTimeout);
+                updatePausePlayButtonState();
+                extendTimeout();
             }
             return true;
         } else if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN
@@ -364,25 +377,25 @@ public class MediaControllerView extends LinearLayout {
             return true;
         }
 
-        show(sDefaultTimeout);
+        extendTimeout();
         return super.dispatchKeyEvent(event);
     }
 
     private View.OnClickListener mPauseListener = new View.OnClickListener() {
         public void onClick(View v) {
             doPauseResume();
-            show(sDefaultTimeout);
+            extendTimeout();
         }
     };
 
     private View.OnClickListener mFullscreenListener = new View.OnClickListener() {
         public void onClick(View v) {
             doToggleFullscreen();
-            show(sDefaultTimeout);
+            extendTimeout();
         }
     };
 
-    public void updatePausePlay() {
+    public void updatePausePlayButtonState() {
         if (mPauseButton == null || mPlayer == null) {
             return;
         }
@@ -394,7 +407,7 @@ public class MediaControllerView extends LinearLayout {
         }
     }
 
-    public void updateFullScreen() {
+    public void updateFullScreenButtonState() {
         if (mFullscreenButton == null || mPlayer == null) {
             return;
         }
@@ -417,7 +430,7 @@ public class MediaControllerView extends LinearLayout {
         } else {
             mPlayer.start();
         }
-        updatePausePlay();
+        updatePausePlayButtonState();
     }
 
     private void doToggleFullscreen() {
@@ -441,7 +454,7 @@ public class MediaControllerView extends LinearLayout {
     // we will simply apply the updated position without suspending regular updates.
     private OnSeekBarChangeListener mSeekListener = new OnSeekBarChangeListener() {
         public void onStartTrackingTouch(SeekBar bar) {
-            show(3600000);
+            show(0);
 
             mDragging = true;
 
@@ -474,7 +487,7 @@ public class MediaControllerView extends LinearLayout {
         public void onStopTrackingTouch(SeekBar bar) {
             mDragging = false;
             setProgress();
-            updatePausePlay();
+            updatePausePlayButtonState();
             show(sDefaultTimeout);
 
             // Ensure that progress is properly updated in the future,
@@ -503,7 +516,7 @@ public class MediaControllerView extends LinearLayout {
             mPlayer.seekTo(pos);
             setProgress();
 
-            show(sDefaultTimeout);
+            extendTimeout();
         }
     };
 
@@ -518,7 +531,7 @@ public class MediaControllerView extends LinearLayout {
             mPlayer.seekTo(pos);
             setProgress();
 
-            show(sDefaultTimeout);
+            extendTimeout();
         }
     };
 

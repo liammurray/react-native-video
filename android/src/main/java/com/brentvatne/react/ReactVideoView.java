@@ -162,7 +162,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     public void setVolume(float leftVolume, float rightVolume) {
         super.setVolume(leftVolume, rightVolume);
-        //mListener.onVolume(leftVolume, rightVolume); //TODO
+        mListener.onVolume(leftVolume, rightVolume);
     }
 
 
@@ -178,7 +178,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         } else {
             setVolume(mVolume, mVolume);
         }
-        //mListener.onMute(muted); //TODO
+        mListener.onMute(muted);
     }
 
     public void setVolumeModifier(final float volume) {
