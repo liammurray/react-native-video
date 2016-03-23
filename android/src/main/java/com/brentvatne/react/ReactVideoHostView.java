@@ -9,7 +9,11 @@ import android.widget.FrameLayout;
 import com.facebook.react.uimanager.ThemedReactContext;
 
 /**
- * The top-level view bound to RCTVideo. It hosts the video view while embedded.
+ * The top-level view bound to RCTVideo. It hosts the video view only while embedded.
+ * but otherwise persists in the layout (list view, etc.). The container view that contains
+ * the video view will be re-parented depending on fullscreen playback state.
+ * The container will be added to the host during embedded state and to the overlay
+ * during fullscreen state.
  */
 public class ReactVideoHostView extends FrameLayout {
 

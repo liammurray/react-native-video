@@ -50,19 +50,21 @@ public class MediaControllerView extends LinearLayout {
     private boolean mEnableFullScreenButton = true;
     private boolean mListenersSet;
     private View.OnClickListener mNextListener, mPrevListener;
-    StringBuilder mFormatBuilder;
-    Formatter mFormatter;
+    private final StringBuilder mFormatBuilder = new StringBuilder();
+    private Formatter mFormatter = new Formatter(mFormatBuilder, Locale.getDefault());
     private ImageButton mPlayPauseButton;
     private ImageButton mFfwdButton;
     private ImageButton mRewButton;
     private ImageButton mNextButton;
     private ImageButton mPrevButton;
     private ImageButton mFullscreenButton;
-    private Handler mHandler = new MessageHandler(this);
+    private final Handler mHandler = new MessageHandler(this);
 
     public MediaControllerView(Context context, AttributeSet attrs) {
         super(context, attrs);
         mContext = context;
+
+        setLayerType(View.LAYER_TYPE_SOFTWARE, null);
     }
 
     public MediaControllerView(Context context) {
@@ -103,8 +105,9 @@ public class MediaControllerView extends LinearLayout {
 
         mEndTime = (TextView) findViewById(R.id.time);
         mCurrentTime = (TextView) findViewById(R.id.time_current);
-        mFormatBuilder = new StringBuilder();
-        mFormatter = new Formatter(mFormatBuilder, Locale.getDefault());
+        setTextTime(mEndTime, 0);
+        setTextTime(mCurrentTime, 0);
+
     }
 
     public void setMediaPlayer(MediaPlayerControl player) {
@@ -368,6 +371,11 @@ public class MediaControllerView extends LinearLayout {
         }
     }
 
+    private void setTextTime(TextView view, int time) {
+        if (view != null) {
+            view.setText(stringForTime(time));
+        }
+    }
     private int setProgress() {
         if (mPlayer == null || mDragging) {
             return 0;
@@ -386,12 +394,8 @@ public class MediaControllerView extends LinearLayout {
             mProgress.setSecondaryProgress(percent * 10);
         }
 
-        if (mEndTime != null) {
-            mEndTime.setText(stringForTime(duration));
-        }
-        if (mCurrentTime != null) {
-            mCurrentTime.setText(stringForTime(position));
-        }
+        setTextTime(mCurrentTime, position);
+        setTextTime(mEndTime, duration);
 
         return position;
     }

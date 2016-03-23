@@ -3,7 +3,6 @@ package com.brentvatne.react;
 import android.content.Context;
 import android.graphics.Color;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -50,8 +49,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     private RCTEventEmitter mEventEmitter;
 
-    private boolean autoStartOnTap = true;
-
 
     // Simple state
     enum State {
@@ -68,7 +65,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         setBackgroundColor(Color.BLACK);
         mEventEmitter = context.getJSModule(RCTEventEmitter.class);
         setOnSystemUiVisibilityChangeListener(this);
-        //ensureController();
     }
 
     private FrameLayout.LayoutParams newFrameLayoutParamsForEmbed() {
@@ -163,23 +159,36 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             // First finger down
             if (mController != null) {
-                toggleMediaControllerVisibility(autoStartOnTap);
+                if (State.PLAYING.equals(mState)) {
+                    // While playing tapping on video toggles controller.
+                    toggleController();
+                } else {
+                    // While stopped or paused tapping resumes or starts playback. Listener will show controller.
+                    start();
+                }
+            } else {
+                // No controller. Tap is play pause.
+                togglePlayPause();
             }
         }
         // Do not allow events to pass through
         return true;
     }
 
-    private void toggleMediaControllerVisibility(boolean autoStart) {
-        //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.toggleMediaControllerVisibility()");
+    private void togglePlayPause() {
+        if (State.PLAYING.equals(mState)) {
+            pause();
+        } else {
+            start();
+        }
+    }
+
+    /** Shows or hides controller */
+    private void toggleController() {
         if (mController.isShowing()) {
             mController.hide();
         } else {
             showController();
-            //mController.bringToFront();
-            if (autoStart && !State.PLAYING.equals(mState)) {
-                start();
-            }
         }
     }
 
