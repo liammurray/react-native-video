@@ -38,9 +38,8 @@ class VideoPlayer extends Component {
 
   componentDidMount() {
     //Orientation.lockToPortrait();
-    // Orientation.lockToLandscape();
+    //Orientation.lockToLandscape();
     //Orientation.unlockAllOrientations(); 
- 
     //Orientation.addOrientationListener(this._orientationDidChange);
   }
 
@@ -51,14 +50,14 @@ class VideoPlayer extends Component {
   onEnterFullScreen(data) {
     console.log("onEnterFullScreen")
     AndroidUtil.setFullScreenMode(true);
-    Orientation.lockToLandscape();
+    Orientation.unlockAllOrientations(); 
     this.setState({autoHideNav: true});
   }
 
   onExitFullScreen(data) {
     console.log("onExitFullScreen")
+    Orientation.lockToPortrait();
     AndroidUtil.setFullScreenMode(false);
-    Orientation.unlockAllOrientations();
     this.setState({autoHideNav: false});
   }
 
