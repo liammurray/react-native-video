@@ -61,13 +61,13 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         super(context);
         mHostView = hostView;
         mVideoView = new ReactVideoView(context, this);
-        addView(mVideoView, newFrameLayoutParamsForEmbed());
+        addView(mVideoView, newFrameLayoutParams());
         //setBackground(Color.BLACK);
         mEventEmitter = context.getJSModule(RCTEventEmitter.class);
         setOnSystemUiVisibilityChangeListener(this);
     }
 
-    private FrameLayout.LayoutParams newFrameLayoutParamsForEmbed() {
+    private FrameLayout.LayoutParams newFrameLayoutParams() {
         return new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,
                 FrameLayout.LayoutParams.MATCH_PARENT);
