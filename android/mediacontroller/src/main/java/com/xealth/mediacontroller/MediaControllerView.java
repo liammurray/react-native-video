@@ -63,7 +63,7 @@ public class MediaControllerView extends LinearLayout {
         super(context, attrs);
         mContext = context;
 
-        setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        //setLayerType(View.LAYER_TYPE_SOFTWARE, null);
     }
 
     public MediaControllerView(Context context) {
@@ -137,11 +137,16 @@ public class MediaControllerView extends LinearLayout {
         mAnchor = view;
         detachFromParent(this);
         if (mAnchor != null) {
-            FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                    Gravity.BOTTOM
-            );
+            // See if controller layout params provided in layout resource (hint: pass parent FrameLayout to inflater.inflate())
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)getLayoutParams();
+            if (params == null) {
+                // Default if none specified in layout
+                params = new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        Gravity.CENTER
+                );
+            }
             mAnchor.addView(this, params);
         }
     }

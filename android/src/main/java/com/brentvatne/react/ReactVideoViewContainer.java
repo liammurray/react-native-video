@@ -62,7 +62,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         mHostView = hostView;
         mVideoView = new ReactVideoView(context, this);
         addView(mVideoView, newFrameLayoutParamsForEmbed());
-        setBackgroundColor(Color.BLACK);
+        //setBackground(Color.BLACK);
         mEventEmitter = context.getJSModule(RCTEventEmitter.class);
         setOnSystemUiVisibilityChangeListener(this);
     }
@@ -82,7 +82,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
             return;
         }
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-        mController = (MediaControllerView)inflater.inflate(R.layout.media_controller, null);
+        // Inflate creating correct version of layout params based on layout
+        mController = (MediaControllerView)inflater.inflate(R.layout.media_controller, this, false);
         mController.setAnchorView(this);
 
     }

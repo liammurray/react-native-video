@@ -1,6 +1,8 @@
 package com.brentvatne.react;
 
 import android.annotation.TargetApi;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.util.Log;
 import android.view.View;
@@ -34,9 +36,16 @@ public class ReactVideoHostView extends FrameLayout {
         addView(mVideoViewContainer, newFrameLayoutParamsForEmbed());
     }
 
+    public void setBackground(Drawable background) {
+        super.setBackground(background);
+        // Set background in view container so it inherits when re-attached in fullscreen (TODO probably need better solution)
+        mVideoViewContainer.setBackground(background);
+    }
+
 
     public ReactVideoHostView(ThemedReactContext themedReactContext) {
         this(themedReactContext, null);
+
     }
 
     private void ensureOverlayView() {
