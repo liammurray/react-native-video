@@ -6,8 +6,8 @@ public interface PlayerEventListener {
     void onPlay();
     void onPause();
     void onStop();
-    void onProgress(int curPos, int bufferedDuration);
-    void onBuffer(int percent);
+    void onProgress(int curPos);
+    void onBuffer(int percent, int duration);
     void onSeek(int msec, int currentPosition);
     void onError(int what, int extra);
     void onVolume(float leftVolume, float rightVolume);

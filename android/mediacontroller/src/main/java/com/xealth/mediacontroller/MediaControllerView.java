@@ -15,7 +15,6 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
-import android.view.animation.TranslateAnimation;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
@@ -171,31 +170,22 @@ public class MediaControllerView extends LinearLayout {
         }
     }
 
-    private void syncButtonEnabledStates() {
-        if (mPlayer != null) {
-            enable(mFullscreenButton, mPlayer.canGoFullScreen());
-            enable(mPlayPauseButton, mPlayer.canPlay());
-            enable(mRewButton, mPlayer.canSeekBackward());
-            enable(mFfwdButton, mPlayer.canSeekForward());
-        }
-        enable(mNextButton, mNextListener != null);
-        enable(mPrevButton, mPrevListener != null);
+    private boolean isPlayerReady() {
+        return mPlayer != null && mPlayer.canPlay();
     }
 
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        logMeasureInfo(getSuggestedMinimumWidth(), getSuggestedMinimumHeight(), widthMeasureSpec, heightMeasureSpec);
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        Log.d("RCTVideo", "MediaControllerView: measured: w: " + getMeasuredWidth() + "; h: " + getMeasuredHeight());
+    private void syncEnabledStates() {
+        boolean playerReady = isPlayerReady();
+        enable(mFullscreenButton, playerReady && mPlayer.canGoFullScreen());
+        enable(mPlayPauseButton, playerReady);
+        enable(mRewButton, playerReady && mPlayer.canSeekBackward());
+        enable(mFfwdButton, playerReady && mPlayer.canSeekForward());
+        enable(mNextButton, playerReady &&  mNextListener != null);
+        enable(mPrevButton, playerReady && mPrevListener != null);
+        enable(mProgress, playerReady);
+
     }
 
-    private static void logMeasureInfo(int minWidth,
-                                       int minHeight, int widthMeasureSpec,
-                                       int heightMeasureSpec) {
-        final int specWidth = MeasureSpec.getSize(widthMeasureSpec);
-        final int specHeight = MeasureSpec.getSize(heightMeasureSpec);
-        Log.d("RCTVideo", "MediaControllerView: minw: " + minWidth + "; minh: " + minHeight + "; sw: " + specWidth + "; sh: " + specHeight);
-    }
 
     private void extendTimeout() {
         if (mHandler.hasMessages(FADE_OUT)) {
@@ -242,7 +232,7 @@ public class MediaControllerView extends LinearLayout {
             if (mPlayPauseButton != null) {
                 mPlayPauseButton.requestFocus();
             }
-            syncButtonEnabledStates();
+            syncEnabledStates();
             notifyVisibilityChanged(true);
         }
         updatePausePlayButtonState();
@@ -391,7 +381,8 @@ public class MediaControllerView extends LinearLayout {
             long pos = (duration > 0) ? 1000L * position / duration : 0;
             mProgress.setProgress( (int) pos);
             int percent = mPlayer.getBufferPercentage();
-            mProgress.setSecondaryProgress(percent * 10);
+            long bufferDuration = (percent * (long)duration) / 100;
+            mProgress.setSecondaryProgress( (int) bufferDuration);
         }
 
         setTextTime(mCurrentTime, position);
@@ -478,6 +469,7 @@ public class MediaControllerView extends LinearLayout {
             extendTimeout();
         }
     };
+
 
     public void updatePausePlayButtonState() {
         if (mPlayPauseButton == null || mPlayer == null) {
@@ -585,7 +577,7 @@ public class MediaControllerView extends LinearLayout {
     public void setEnabled(boolean enabled) {
         super.setEnabled(enabled);
         if (enabled) {
-            syncButtonEnabledStates();
+            syncEnabledStates();
         }
     }
 
@@ -670,5 +662,28 @@ public class MediaControllerView extends LinearLayout {
                     break;
             }
         }
+    }
+
+    public void onPlay() {
+        updatePausePlayButtonState();
+        show();
+    }
+
+    public void onPause() {
+        updatePausePlayButtonState();
+        show(0);
+    }
+
+    public void onStop() {
+        updatePausePlayButtonState();
+        show(0);
+    }
+
+    public void onFullScreenSwitch() {
+        updateFullScreenButtonState();
+    }
+
+    public void onPlayerReady() {
+        this.syncEnabledStates();
     }
 }

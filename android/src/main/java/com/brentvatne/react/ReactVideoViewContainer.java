@@ -262,15 +262,10 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void toggleFullScreen() {
-        boolean changed = false;
         if (isFullScreen()) {
-            changed = mHostView.goEmbed();
+            mHostView.goEmbed();
         } else {
-            changed = mHostView.goFullScreen();
-        }
-        if (changed) {
-            Events event = isFullScreen() ? Events.EVENT_ENTER_FS : Events.EVENT_EXIT_FS;
-            mEventEmitter.receiveEvent(getHostViewId(), event.toString(), null);
+            mHostView.goFullScreen();
         }
     }
 
@@ -327,11 +322,12 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         }
     }
 
-    public void onPostFullScreenToggle(boolean wentFullScreen) {
-        showController();
-        ViewUtil.dump(this);
-        mVideoView.invalidate();
-        mVideoView.requestLayout();
+    public void onFullScreenSwitch() {
+        if (mController != null) {
+            mController.onFullScreenSwitch();
+        }
+        Events event = isFullScreen() ? Events.EVENT_ENTER_FS : Events.EVENT_EXIT_FS;
+        mEventEmitter.receiveEvent(getHostViewId(), event.toString(), null);
     }
 
     @Override
@@ -339,7 +335,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onPause()");
         mState = State.PAUSED;
         if (mController != null) {
-            mController.show(0);
+            mController.onPause();
         }
     }
 
@@ -349,21 +345,25 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         mState = State.STOPPED;
         mEventEmitter.receiveEvent(getHostViewId(), ReactVideo.Events.EVENT_END.toString(), null);
         if (mController != null) {
-            mController.show(0);
+            mController.onStop();
         }
     }
 
     @Override
-    public void onProgress(int currentPos, int bufferedDuration) {
+    public void onProgress(int currentPos) {
         WritableMap event = Arguments.createMap();
         event.putDouble(EVENT_PROP_CURRENT_TIME, currentPos / 1000.0);
-        event.putDouble(EVENT_PROP_PLAYABLE_DURATION, bufferedDuration / 1000.0); //TODO see onBuffer
+        event.putDouble(EVENT_PROP_PLAYABLE_DURATION, mVideoView.getBufferDuration() / 1000.0);
         mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_PROGRESS.toString(), event);
     }
 
     @Override
-    public void onBuffer(int percent) {
-
+    public void onBuffer(int percent, int duration) {
+        if (!State.PLAYING.equals(mState)) {
+            WritableMap event = Arguments.createMap();
+            event.putDouble(EVENT_PROP_PLAYABLE_DURATION, mVideoView.getBufferDuration() / 1000.0);
+            mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_PROGRESS.toString(), event);
+        }
     }
 
     @Override
@@ -423,6 +423,9 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         event.putBoolean(EVENT_PROP_STEP_BACKWARD, true);
         event.putBoolean(EVENT_PROP_STEP_FORWARD, true);
         mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_LOAD.toString(), event);
+        if (mController != null) {
+            mController.onPlayerReady();
+        }
     }
 
     @Override
@@ -430,7 +433,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onPlay()");
         mState = State.PLAYING;
         if (mController != null) {
-            mController.show();
+            mController.onPlay();
         }
     }
 

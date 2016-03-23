@@ -56,8 +56,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         @Override
         public void run() {
             if (mMediaPlayerValid) {
-                //TODO mVideoBufferedDuration?
-                mListener.onProgress(mMediaPlayer.getCurrentPosition(), mVideoBufferedDuration);
+                mListener.onProgress(mMediaPlayer.getCurrentPosition());
                 mHandler.postDelayed(mProgressUpdateRunnable, PROGRESS_UPDATE_INTERVAL);
             }
         }
@@ -164,13 +163,21 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     @Override
     public void start() {
+        if (!mMediaPlayerValid) {
+            return;
+        }
         super.start();
         startProgressTimer(true);
         mListener.onPlay();
+
+
     }
 
     @Override
     public void pause() {
+        if (!mMediaPlayerValid) {
+            return;
+        }
         super.pause();
         startProgressTimer(false);
         mListener.onPause();
@@ -245,7 +252,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     public void onBufferingUpdate(MediaPlayer mp, int percent) {
         //Log.d(ReactVideoViewManager.REACT_CLASS, "onBufferingUpdate() " + percent);
         mVideoBufferedDuration = (int) Math.round((double) (mVideoDuration * percent) / 100.0);
-        mListener.onBuffer(percent);
+        mListener.onBuffer(percent, mVideoBufferedDuration);
     }
 
     @Override
@@ -306,6 +313,9 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         mMediaPlayerValid = false;
     }
 
+    public  int getBufferDuration() {
+        return mVideoBufferedDuration;
+    }
 
     public  int getBufferPercentage() {
         return mVideoDuration > 0 ? mVideoBufferedDuration * 100 / mVideoDuration : mVideoDuration;

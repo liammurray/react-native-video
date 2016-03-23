@@ -4,6 +4,7 @@ import android.annotation.TargetApi;
 import android.os.Build;
 import android.util.Log;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -74,7 +75,14 @@ public class ReactVideoHostView extends FrameLayout {
     }
 
 
+    /** Expand to fill screen */
+    private LayoutParams newFrameLayoutParamsForFullScreen() {
+        return new LayoutParams(
+                LayoutParams.MATCH_PARENT,
+                LayoutParams.MATCH_PARENT);
+    }
 
+    /** Wrap around content */
     private LayoutParams newFrameLayoutParamsForEmbed() {
         return new LayoutParams(
                 LayoutParams.WRAP_CONTENT,
@@ -84,18 +92,18 @@ public class ReactVideoHostView extends FrameLayout {
     @TargetApi(Build.VERSION_CODES.KITKAT)
     public boolean canGoFullScreen() {
         return mOverlayView != null && mOverlayView.isAttachedToWindow();
-        //return mOverlayView != null && mOverlayView.getWindowToken() != null;
+    }
+
+    private static void reParentView(ViewGroup parent, View child, LayoutParams params) {
+        ViewUtil.detachFromParent(child);
+        parent.addView(child, params);
     }
 
     public boolean goFullScreen() {
         if (!mIsFullScreen && canGoFullScreen()) {
-            //int cx = view.getMeasuredWidth();
-            //int cy = view.getMeasuredHeight();
-            ViewUtil.detachFromParent(mVideoViewContainer);
-            // Default FrameLayout params specify MATCH_PARENT
-            mOverlayView.addView(mVideoViewContainer);
-            mVideoViewContainer.onPostFullScreenToggle(true);
+            reParentView(mOverlayView, mVideoViewContainer, newFrameLayoutParamsForFullScreen());
             mIsFullScreen = true;
+            mVideoViewContainer.onFullScreenSwitch();
             return true;
         }
         return false;
@@ -103,13 +111,10 @@ public class ReactVideoHostView extends FrameLayout {
 
     public boolean goEmbed() {
         if (mIsFullScreen) {
-            Log.d("RCTVideo", "ReactVideoHostView: goEmbed(): this win token: " + getWindowToken());
-            ViewUtil.detachFromParent(mVideoViewContainer);
-            addView(mVideoViewContainer, newFrameLayoutParamsForEmbed());
-            mVideoViewContainer.setVisibility(View.INVISIBLE);
-            mVideoViewContainer.setVisibility(View.VISIBLE);
-            mVideoViewContainer.onPostFullScreenToggle(false);
+            Log.d("RCTVideo", "ReactVideoHostView: goEmbed(): win token: " + getWindowToken());
+            reParentView(this, mVideoViewContainer, newFrameLayoutParamsForEmbed());
             mIsFullScreen = false;
+            mVideoViewContainer.onFullScreenSwitch();
             return true;
         }
         return false;

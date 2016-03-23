@@ -32,6 +32,23 @@ public class ViewUtil {
         }
     }
 
+    public static void invalidateRoot(View view) {
+        if (view == null) {
+            return;
+        }
+        View top = view;
+        ViewParent parent = view.getParent();
+        while (parent != null) {
+            if (parent instanceof ViewGroup) {
+                top = (ViewGroup) parent;
+                parent = parent.getParent();
+            } else {
+                break;
+            }
+        }
+        top.invalidate();
+    }
+
 
     @TargetApi(Build.VERSION_CODES.KITKAT)
     public static void dumpChild(View view) {
