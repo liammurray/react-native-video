@@ -305,7 +305,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         if (mVideoView.isPlaying()) {
             mController.show();
         } else {
-            mController.show(0);
+            mController.show(false);
         }
     }
 
