@@ -80,9 +80,8 @@ public final class OverlayView extends FrameLayout {
      * Removes overlay from content frame and disassociates with target view. 
      * 
      * Do not call this in View.onDetachedFromWindow() since the parent 
-     * ViewGroup may be in middle of iterating over hierarchy. During that 
-     * time it may alias the child list and count. We modify those values
-     * when detaching. See ViewGroup.dispatchDetachedFromWindow.
+     * ViewGroup may be in middle of iterating over hierarchy.
+     * See ViewGroup.dispatchDetachedFromWindow().
      */
     public void detach() {
         ViewUtil.detachFromParent(this);

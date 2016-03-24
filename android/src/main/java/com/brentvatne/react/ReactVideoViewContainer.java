@@ -49,6 +49,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     private RCTEventEmitter mEventEmitter;
 
+    private InfoView infoView;
+
 
     // Simple state
     enum State {
@@ -62,6 +64,12 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         mHostView = hostView;
         mVideoView = new ReactVideoView(context, this);
         addView(mVideoView, newFrameLayoutParams());
+
+        LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+        infoView = (InfoView)inflater.inflate(R.layout.info_view, this, false);
+        addView(infoView);
+        infoView.setState(InfoView.State.HIDDEN);
+
         //setBackground(Color.BLACK);
         mEventEmitter = context.getJSModule(RCTEventEmitter.class);
         setOnSystemUiVisibilityChangeListener(this);
@@ -157,7 +165,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent()");
-        if (ev.getAction() == MotionEvent.ACTION_DOWN) {
+        // Ignore toggle logic while player is in bad state
+        if (ev.getAction() == MotionEvent.ACTION_DOWN && canPlay()) {
             // First finger down
             if (mController != null) {
                 if (State.PLAYING.equals(mState)) {
@@ -172,7 +181,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
                 togglePlayPause();
             }
         }
-        // Do not allow events to pass through
         return true;
     }
 
@@ -223,7 +231,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public boolean isPlaying() {
-        return mVideoView.isPlaying();
+        return State.PLAYING.equals(mState);
     }
 
     @Override
@@ -286,6 +294,9 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doCleanup()");
         mVideoView.doCleanup();
         if (mController != null) {
+            // Since we disable callbacks we can't rely on stop callbacks
+            mState = State.STOPPED;
+            mController.onStop();
             mController.hide();
             // Disable callbacks until next init
             mController.setMediaPlayer(null);
@@ -301,12 +312,9 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      * Shows with timeout if playing. Otherwise shows and persists.
      */
     private void showController() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.showController()");
-        if (mVideoView.isPlaying()) {
-            mController.show();
-        } else {
-            mController.show(false);
-        }
+        boolean persist = !isPlaying();
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.showController(): persist: " + persist);
+        mController.show(persist);
     }
 
 
@@ -376,9 +384,16 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     }
 
+
     @Override
     public void onError(int what, int extra) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onError()");
+        if (!mVideoView.isPrepared()) {
+            infoView.setState(InfoView.State.FAILED);
+            if (mController != null) {
+                mController.onStop();
+            }
+        }
         WritableMap error = Arguments.createMap();
         error.putInt(EVENT_PROP_WHAT, what);
         error.putInt(EVENT_PROP_EXTRA, extra);
@@ -400,6 +415,10 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public void onLoad(String uriString, String type, boolean isNetwork) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onLoad()");
+        if (mController != null) {
+            mController.onLoad();
+        }
+        infoView.setState(InfoView.State.LOADING);
         WritableMap src = Arguments.createMap();
         src.putString(ReactVideoViewManager.PROP_SRC_URI, uriString);
         src.putString(ReactVideoViewManager.PROP_SRC_TYPE, type);
@@ -412,6 +431,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public void onLoadComplete(int currentPosition, int videoDuration) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onLoadComplete()");
+        infoView.setState(InfoView.State.HIDDEN);
         WritableMap event = Arguments.createMap();
         event.putDouble(EVENT_PROP_DURATION, videoDuration / 1000.0);
         event.putDouble(EVENT_PROP_CURRENT_TIME, currentPosition / 1000.0);

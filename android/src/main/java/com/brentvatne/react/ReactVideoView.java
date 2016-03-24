@@ -88,7 +88,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     }
 
-    public void  setSrc(final String uriString, final String type, final boolean isNetwork, final boolean isAsset) {
+    public void  setSrc( String uriString, final String type, final boolean isNetwork, final boolean isAsset) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "setSrc() " + uriString);
         mSrcUriString = uriString;
         mSrcType = type;
@@ -114,6 +114,8 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
             }
         } catch (Exception e) {
             e.printStackTrace();
+            // Probably a bad URL or path
+            mListener.onError(-99,-99);
             return;
         }
 
@@ -169,8 +171,6 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
         super.start();
         startProgressTimer(true);
         mListener.onPlay();
-
-
     }
 
     @Override
@@ -227,6 +227,10 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
     }
 
 
+    @Override
+    public boolean isPlaying() {
+        return mMediaPlayerValid && mMediaPlayer.isPlaying();
+    }
 
 
     @Override
@@ -243,7 +247,7 @@ public class ReactVideoView extends ScalableVideoView implements MediaPlayer.OnP
 
     @Override
     public boolean onError(MediaPlayer mp, int what, int extra) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onError() " + what);
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onError() " + what + "; is prepared: " + mMediaPlayerValid);
         mListener.onError(what, extra);
         return true;
     }

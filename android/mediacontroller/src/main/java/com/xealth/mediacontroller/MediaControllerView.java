@@ -598,6 +598,10 @@ public class MediaControllerView extends LinearLayout {
         show(true);
     }
 
+    public void onLoad() {
+        updatePausePlayButtonState();
+    }
+
     public void onFullScreenSwitch() {
         updateFullScreenButtonState();
     }
