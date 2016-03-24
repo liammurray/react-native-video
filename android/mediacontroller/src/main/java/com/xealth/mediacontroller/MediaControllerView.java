@@ -23,8 +23,8 @@ import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 
 import com.xealth.mediacontroller.callback.Callback;
+import com.xealth.mediacontroller.callback.WeakRefCallback;
 
-import java.lang.ref.WeakReference;
 import java.util.Formatter;
 import java.util.Locale;
 
@@ -266,22 +266,28 @@ public class MediaControllerView extends LinearLayout {
         }
     }
 
-    private Callback hideCallback = new Callback(mHandler, sDefaultTimeout) {
+
+    private WeakRefCallback.DoRunnable hideRunnable = new WeakRefCallback.DoRunnable() {
         @Override
-        protected boolean doRun() {
+        public boolean doRun() {
             hide();
             return false;
         }
     };
 
-    private static final int PROGRESS_UPDATE_INTERVAL = 250;
-    private Callback progressCallback = new Callback(mHandler, PROGRESS_UPDATE_INTERVAL) {
+
+    private WeakRefCallback.DoRunnable progressRunnable = new WeakRefCallback.DoRunnable() {
         @Override
-        protected boolean doRun() {
+        public boolean doRun() {
             setProgress();
             return (!mDragging && mShowing && mPlayer.isPlaying());
         }
     };
+
+    private Callback hideCallback = new WeakRefCallback(mHandler, sDefaultTimeout, hideRunnable);
+    private static final int PROGRESS_UPDATE_INTERVAL = 250;
+    private Callback progressCallback = new WeakRefCallback(mHandler, PROGRESS_UPDATE_INTERVAL, progressRunnable);
+
 
     /**
      * Remove the controller from the screen.
