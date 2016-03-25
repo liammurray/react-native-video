@@ -205,6 +205,11 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     private InternalErrorListener internalErrorListener;
     private InfoListener infoListener;
 
+    private boolean enableRepeat = false;
+
+    private boolean seekToBeginOnStop = true;
+
+
     public ExoPlayerWrapper(RendererBuilder rendererBuilder) {
         this.rendererBuilder = rendererBuilder;
         player = ExoPlayer.Factory.newInstance(RENDERER_COUNT, 1000, 5000);
@@ -215,6 +220,14 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         rendererBuildingState = RENDERER_BUILDING_STATE_IDLE;
         // Disable text initially.
         player.setSelectedTrack(TYPE_TEXT, TRACK_DISABLED);
+    }
+
+    public void setRepeatMode(boolean enableRepeat) {
+        this.enableRepeat = enableRepeat;
+    }
+
+    public void setSeekToBeginningOnStop(boolean seekToBeginOnStop) {
+        this.seekToBeginOnStop = seekToBeginOnStop;
     }
 
     public void addListener(Listener listener) {
@@ -452,16 +465,12 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         }
     }
 
-    public void setRepeatMode(boolean enableRepeat) {
-        this.enableRepeat = enableRepeat;
-    }
-
-    private boolean enableRepeat = false;
-
     private void resetOnStop() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.resetOnStop()");
         setPlayWhenReady(enableRepeat);
-        seekTo(0);
+        if (seekToBeginOnStop || enableRepeat) {
+            seekTo(0);
+        }
     }
 
     @Override
@@ -647,6 +656,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
             return;
         }
 
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.pushSurface(): surface: " + surface);
         if (blockForSurfacePush) {
             player.blockingSendMessage(
                     videoRenderer, MediaCodecVideoTrackRenderer.MSG_SET_SURFACE, surface);

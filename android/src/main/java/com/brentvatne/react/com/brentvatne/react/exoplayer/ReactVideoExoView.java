@@ -6,8 +6,6 @@ import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -35,7 +33,7 @@ import java.util.List;
 
 public class ReactVideoExoView extends FrameLayout
         implements ExoPlayerWrapper.Listener, ExoPlayerWrapper.CaptionListener, ExoPlayerWrapper.Id3MetadataListener,
-        AudioCapabilitiesReceiver.Listener/*, SurfaceHolder.Callback*/, ScalableTextureView.SurfaceUser {
+        AudioCapabilitiesReceiver.Listener/*, SurfaceHolder.Callback*/, TextureViewScaleManager.SurfaceUser {
 
     private Handler mHandler = new Handler();
 
@@ -62,13 +60,8 @@ public class ReactVideoExoView extends FrameLayout
     /** Logs video events for debugging (from exoplayer demo) */
     private EventLogger eventLogger;
 
-    private View debugRootView;
-    private View shutterView;
-
-    //private SurfaceView surfaceView;
-
     private TextureView textureView;
-    private ScalableTextureView textureViewManager;
+    private TextureViewScaleManager textureViewManager;
 
     private SubtitleLayout subtitleLayout;
 
@@ -117,11 +110,8 @@ public class ReactVideoExoView extends FrameLayout
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-        shutterView = findViewById(R.id.shutter);
-        //surfaceView = (SurfaceView) findViewById(R.id.surface_view);
-        //surfaceView.getHolder().addCallback(this);
         textureView = (TextureView) findViewById(R.id.texture_view);
-        textureViewManager = new ScalableTextureView(textureView, this);
+        textureViewManager = new TextureViewScaleManager(textureView, this);
         textureViewManager.setScalableType(resizeMode);
 
         subtitleLayout = (SubtitleLayout) findViewById(R.id.subtitles);
@@ -264,7 +254,6 @@ public class ReactVideoExoView extends FrameLayout
         } else {
             player.setBackgrounded(true);
         }
-        shutterView.setVisibility(View.VISIBLE);
     }
 
     private static boolean preparePending = false;
@@ -282,6 +271,8 @@ public class ReactVideoExoView extends FrameLayout
                 mListener.onBuffer(player.getBufferedPercentage(), player.getBufferedDuration());
                 break;
             case ExoPlayer.STATE_ENDED:
+                // Always play from beginning even though internally player may stop and maintain pos at end
+                playerPosition = 0;
                 progressCallback.cancel();
                 mListener.onStop();
                 break;
@@ -335,9 +326,7 @@ public class ReactVideoExoView extends FrameLayout
     @Override
     public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.onVideoSizeChanged()");
-        shutterView.setVisibility(View.GONE);
         textureViewManager.setSourceSize(width, height);
-        //videoFrame.setAspectRatio(height == 0 ? 1 : (width * pixelWidthAspectRatio) / height);
     }
 
 

@@ -10,7 +10,7 @@ import com.yqritc.scalablevideoview.ScaleManager;
 import com.yqritc.scalablevideoview.Size;
 
 
-public class ScalableTextureView implements TextureView.SurfaceTextureListener {
+public class TextureViewScaleManager implements TextureView.SurfaceTextureListener {
 
     private ScalableType mScalableType = ScalableType.NONE;
     
@@ -27,7 +27,7 @@ public class ScalableTextureView implements TextureView.SurfaceTextureListener {
         void setSurface(Surface surface);
     }
 
-    public ScalableTextureView(TextureView textureView, SurfaceUser user) {
+    public TextureViewScaleManager(TextureView textureView, SurfaceUser user) {
         this.textureView = textureView;
         this.surfaceUser = user;
         textureView.setSurfaceTextureListener(this);
