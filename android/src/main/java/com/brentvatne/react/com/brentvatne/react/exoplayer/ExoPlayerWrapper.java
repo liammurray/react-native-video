@@ -242,17 +242,16 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     }
 
     public void setSurface(Surface surface) {
-        this.surface = surface;
-        pushSurface(false);
+        setSurface(surface, false);
     }
 
     public Surface getSurface() {
         return surface;
     }
 
-    public void blockingClearSurface() {
-        surface = null;
-        pushSurface(true);
+    public void setSurface(Surface surface, boolean block) {
+        this.surface = surface;
+        pushSurface(block);
     }
 
     public int getTrackCount(int type) {
@@ -282,11 +281,12 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         if (this.backgrounded == backgrounded) {
             return;
         }
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.setBackgrounded(): " + backgrounded);
         this.backgrounded = backgrounded;
         if (backgrounded) {
             videoTrackToRestore = getSelectedTrack(TYPE_VIDEO);
             setSelectedTrack(TYPE_VIDEO, TRACK_DISABLED);
-            blockingClearSurface();
+            setSurface(null, true);
         } else {
             setSelectedTrack(TYPE_VIDEO, videoTrackToRestore);
         }
@@ -453,7 +453,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     }
 
     public void setRepeatMode(boolean enableRepeat) {
-        this.enableRepeat = true;
+        this.enableRepeat = enableRepeat;
     }
 
     private boolean enableRepeat = false;
@@ -643,6 +643,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
 
     private void pushSurface(boolean blockForSurfacePush) {
         if (videoRenderer == null) {
+            Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.pushSurface(): no renderer (ignore)");
             return;
         }
 

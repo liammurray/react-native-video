@@ -5,8 +5,10 @@ import android.net.Uri;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.TextureView;
 import android.view.View;
 import android.widget.FrameLayout;
 
@@ -33,7 +35,7 @@ import java.util.List;
 
 public class ReactVideoExoView extends FrameLayout
         implements ExoPlayerWrapper.Listener, ExoPlayerWrapper.CaptionListener, ExoPlayerWrapper.Id3MetadataListener,
-        AudioCapabilitiesReceiver.Listener, SurfaceHolder.Callback {
+        AudioCapabilitiesReceiver.Listener/*, SurfaceHolder.Callback*/, ScalableTextureView.SurfaceUser {
 
     private Handler mHandler = new Handler();
 
@@ -63,7 +65,10 @@ public class ReactVideoExoView extends FrameLayout
     private View debugRootView;
     private View shutterView;
 
-    private SurfaceView surfaceView;
+    //private SurfaceView surfaceView;
+
+    private TextureView textureView;
+    private ScalableTextureView textureViewManager;
 
     private SubtitleLayout subtitleLayout;
 
@@ -112,11 +117,13 @@ public class ReactVideoExoView extends FrameLayout
     @Override
     protected void onFinishInflate() {
         super.onFinishInflate();
-        // Use AspectRatioFrameLayout when no scale transform?
-        // TODO get rid of the shutter?
         shutterView = findViewById(R.id.shutter);
-        surfaceView = (SurfaceView) findViewById(R.id.surface_view);
-        surfaceView.getHolder().addCallback(this);
+        //surfaceView = (SurfaceView) findViewById(R.id.surface_view);
+        //surfaceView.getHolder().addCallback(this);
+        textureView = (TextureView) findViewById(R.id.texture_view);
+        textureViewManager = new ScalableTextureView(textureView, this);
+        textureViewManager.setScalableType(resizeMode);
+
         subtitleLayout = (SubtitleLayout) findViewById(R.id.subtitles);
 
         CookieHandler currentHandler = CookieHandler.getDefault();
@@ -125,18 +132,6 @@ public class ReactVideoExoView extends FrameLayout
         }
 
         audioCapabilitiesReceiver = new AudioCapabilitiesReceiver(getContext(), this);
-
-
-//        root.setOnKeyListener(new OnKeyListener() {
-//            @Override
-//            public boolean onKey(View v, int keyCode, KeyEvent event) {
-//                if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_ESCAPE
-//                        || keyCode == KeyEvent.KEYCODE_MENU) {
-//                    return false;
-//                }
-//                return mediaController.dispatchKeyEvent(event);
-//            }
-//        });
     }
 
 
@@ -230,7 +225,10 @@ public class ReactVideoExoView extends FrameLayout
             playerNeedsPrepare = false;
             //updateButtonVisibilities();
         }
-        player.setSurface(surfaceView.getHolder().getSurface());
+        //Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): set surface: " + surfaceView.getHolder().getSurface());
+        //player.setSurface(surfaceView.getHolder().getSurface());
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): set surface: " + textureViewManager.getSurface());
+        player.setSurface(textureViewManager.getSurface());
         player.setPlayWhenReady(playWhenReady);
 
     }
@@ -336,9 +334,9 @@ public class ReactVideoExoView extends FrameLayout
 
     @Override
     public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.onVideoSizeChanged()");
         shutterView.setVisibility(View.GONE);
-        //TODO update matrix
-        //scaleVideoSize(width, height);
+        textureViewManager.setSourceSize(width, height);
         //videoFrame.setAspectRatio(height == 0 ? 1 : (width * pixelWidthAspectRatio) / height);
     }
 
@@ -362,23 +360,38 @@ public class ReactVideoExoView extends FrameLayout
     }
 
     @Override
-    public void surfaceCreated(SurfaceHolder holder) {
+    public void setSurface(Surface surface) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.setSurface(): surface: " + surface);
         if (player != null) {
-            player.setSurface(holder.getSurface());
+            if (surface != null) {
+                player.setSurface(surface);
+            } else {
+                player.setSurface(null, true);
+            }
         }
     }
 
-    @Override
-    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-        //TODO update matrix
-    }
-
-    @Override
-    public void surfaceDestroyed(SurfaceHolder holder) {
-        if (player != null) {
-            player.blockingClearSurface();
-        }
-    }
+//    @Override
+//    public void surfaceCreated(SurfaceHolder holder) {
+//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.surfaceCreated(): surface: " + holder.getSurface());
+//        if (player != null) {
+//            player.setSurface(holder.getSurface());
+//        }
+//    }
+//
+//    @Override
+//    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.surfaceChanged(): surface: " + holder.getSurface());
+//        //TODO update matrix
+//    }
+//
+//    @Override
+//    public void surfaceDestroyed(SurfaceHolder holder) {
+//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.surfaceDestroyed(): (clearing surface) player: " + player);
+//        if (player != null) {
+//            player.blockingClearSurface();
+//        }
+//    }
 
     private void configureSubtitleView() {
         CaptionStyleCompat style;
@@ -398,15 +411,15 @@ public class ReactVideoExoView extends FrameLayout
 
 
     public void setResizeMode(final ScalableType resizeMode) {
-        this.resizeMode = resizeMode; //TODO
-        //setScalableType(resizeMode);
+        this.resizeMode = resizeMode;
+        textureViewManager.setScalableType(resizeMode);
         //invalidate();
     }
 
 
     public void setRepeat(final boolean repeat) {
         enableRepeatMode = repeat;
-        //TODO
+        player.setRepeatMode(enableRepeatMode);
     }
 
     public void setPaused(final boolean paused) {
@@ -489,5 +502,6 @@ public class ReactVideoExoView extends FrameLayout
         setRateModifier(playbackRate);
         seekTo(playerPosition);
     }
+
 
 }

@@ -44,9 +44,15 @@ public class ScalableTextureView implements TextureView.SurfaceTextureListener {
         updateMatrix(sourceWidth, sourceHeight);
     }
 
+    private Surface surface;
+
+    public Surface getSurface() {
+        return surface;
+    }
+
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
-        Surface surface = new Surface(surfaceTexture);
+        surface = new Surface(surfaceTexture);
         if (surfaceUser != null) {
             surfaceUser.setSurface(surface);
             updateMatrix(sourceWidth, sourceHeight, width, height);
@@ -59,7 +65,8 @@ public class ScalableTextureView implements TextureView.SurfaceTextureListener {
     }
 
     @Override
-    public boolean onSurfaceTextureDestroyed(SurfaceTexture surface) {
+    public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
+        this.surface = null;
         if (surfaceUser != null) {
             surfaceUser.setSurface(null);
         }
@@ -87,10 +94,8 @@ public class ScalableTextureView implements TextureView.SurfaceTextureListener {
         Size videoSize = new Size(sourceWidth, sourceHeight);
         ScaleManager scaleManager = new ScaleManager(viewSize, videoSize);
         Matrix matrix = scaleManager.getScaleMatrix(mScalableType);
-        if (matrix != null) {
-            textureView.setTransform(matrix);
-            textureView.invalidate(); //TODO necessary?
-        }
+        textureView.setTransform(matrix);
+        textureView.invalidate();
     }
 
 
