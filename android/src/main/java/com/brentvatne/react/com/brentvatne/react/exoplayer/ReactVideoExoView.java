@@ -32,7 +32,7 @@ import java.util.List;
 
 
 public class ReactVideoExoView extends FrameLayout
-        implements DemoPlayer.Listener, DemoPlayer.CaptionListener, DemoPlayer.Id3MetadataListener,
+        implements ExoPlayerWrapper.Listener, ExoPlayerWrapper.CaptionListener, ExoPlayerWrapper.Id3MetadataListener,
         AudioCapabilitiesReceiver.Listener, SurfaceHolder.Callback {
 
     private Handler mHandler = new Handler();
@@ -67,7 +67,7 @@ public class ReactVideoExoView extends FrameLayout
 
     private SubtitleLayout subtitleLayout;
 
-    private DemoPlayer player;
+    private ExoPlayerWrapper player;
 
     private boolean playerNeedsPrepare;
 
@@ -88,7 +88,7 @@ public class ReactVideoExoView extends FrameLayout
     private WeakRefCallback.DoRunnable progressRunnable = new WeakRefCallback.DoRunnable() {
         @Override
         public boolean doRun() {
-            mListener.onProgress((int)player.getCurrentPosition());
+            mListener.onProgress(player.getCurrentPosition());
             return enableProgressCallbacks && player.isPlaybackActive();
         }
     };
@@ -140,7 +140,7 @@ public class ReactVideoExoView extends FrameLayout
     }
 
 
-    private DemoPlayer.RendererBuilder getRendererBuilder() {
+    private ExoPlayerWrapper.RendererBuilder getRendererBuilder() {
         switch (contentType) {
 //            case Util.TYPE_SS:
 //                return new SmoothStreamingRendererBuilder(this, userAgent, contentUri.toString(),
@@ -157,9 +157,9 @@ public class ReactVideoExoView extends FrameLayout
         }
     }
 
-    public DemoPlayer getPlayer() {
-        return player;
-    }
+//    public ExoPlayerWrapper getPlayer() {
+//        return player;
+//    }
 
     static final String FILE_SCHEME="file";
 
@@ -206,7 +206,7 @@ public class ReactVideoExoView extends FrameLayout
     private void preparePlayer(boolean playWhenReady) {
         if (player == null) {
             // Renderer handle obtaining data for a given URI
-            player = new DemoPlayer(getRendererBuilder());
+            player = new ExoPlayerWrapper(getRendererBuilder());
             player.addListener(this);
             player.setCaptionListener(this);
             player.setMetadataListener(this);
@@ -269,7 +269,9 @@ public class ReactVideoExoView extends FrameLayout
         shutterView.setVisibility(View.VISIBLE);
     }
 
-    // DemoPlayer.Listener implementation
+    private static boolean preparePending = false;
+
+    // ExoPlayerWrapper.Listener implementation
 
     @Override
     public void onStateChanged(boolean playWhenReady, int playbackState) {
@@ -279,23 +281,25 @@ public class ReactVideoExoView extends FrameLayout
 
         switch(playbackState) {
             case ExoPlayer.STATE_BUFFERING:
-                mListener.onBuffer(player.getBufferedPercentage(), (int)player.getBufferedDuration());
+                mListener.onBuffer(player.getBufferedPercentage(), player.getBufferedDuration());
                 break;
             case ExoPlayer.STATE_ENDED:
                 progressCallback.cancel();
                 mListener.onStop();
-                seekTo(0);
                 break;
             case ExoPlayer.STATE_IDLE:
                 progressCallback.cancel();
                 break;
             case ExoPlayer.STATE_PREPARING:
                 progressCallback.cancel();
-                //TODO toString, etc.
+                preparePending = true;
                 mListener.onLoad(srcUri.toString(), contentTypeExt, conentIsNetwork);
                 break;
-            case ExoPlayer.STATE_READY: //TODO use long everywhere
-                mListener.onLoadComplete((int)player.getCurrentPosition(), (int)player.getDuration());
+            case ExoPlayer.STATE_READY:
+                if (preparePending) {
+                    mListener.onLoadComplete(player.getCurrentPosition(), player.getDuration());
+                    preparePending = false;
+                }
                 if (playWhenReady) {
                     mListener.onPlay();
                     progressCallback.set();
@@ -338,7 +342,8 @@ public class ReactVideoExoView extends FrameLayout
         //videoFrame.setAspectRatio(height == 0 ? 1 : (width * pixelWidthAspectRatio) / height);
     }
 
-    /** Pass something like DemoPlayer.TYPE_VIDEO to check how many tracks */
+
+    /** Pass something like ExoPlayerWrapper.TYPE_VIDEO to check how many tracks */
     public int getTrackCount(int type) {
         return player != null ? player.getTrackCount(type) : 0;
     }
@@ -422,6 +427,34 @@ public class ReactVideoExoView extends FrameLayout
     }
 
 
+    public long getDuration() {
+        return (player != null) ? player.getDuration() : 0;
+    }
+
+    public long getCurrentPosition() {
+        return (player != null) ? player.getCurrentPosition() : 0;
+    }
+
+    public int getBufferedPercentage() {
+        return (player != null) ? player.getBufferedPercentage() : 0;
+    }
+    public long getBufferedDuration() {
+        return (player != null) ? player.getBufferedDuration() : 0;
+    }
+
+    public boolean canPlay() {
+        return (player != null) && player.canPlay();
+    }
+
+    public boolean isPlaying() {
+        return (player != null) && player.isPlaybackActive();
+    }
+
+    @Override
+    public void onSeek(long oldPos, long newPos) {
+        mListener.onSeek(newPos, oldPos);
+    }
+
     public void seekTo(long pos) {
 
         playerPosition = pos;
@@ -430,10 +463,9 @@ public class ReactVideoExoView extends FrameLayout
         }
         playerPosition = player.getDuration() == ExoPlayer.UNKNOWN_TIME ? 0
                 : Math.min(Math.max(0, pos), player.getDuration());
-        long oldPos = player.getCurrentPosition();
-        //TODO Is there another callback for seek request?
+        //long oldPos = player.getCurrentPosition();
         player.seekTo(playerPosition);
-        mListener.onSeek((int)playerPosition, (int)player.getCurrentPosition());
+        //mListener.onSeek(playerPosition, player.getCurrentPosition());
     }
 
     public void setVolume(final float volume) {

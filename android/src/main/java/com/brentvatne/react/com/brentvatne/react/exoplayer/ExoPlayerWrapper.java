@@ -18,8 +18,10 @@ package com.brentvatne.react.com.brentvatne.react.exoplayer;
 import android.media.MediaCodec.CryptoException;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.Log;
 import android.view.Surface;
 
+import com.brentvatne.react.ReactVideoViewManager;
 import com.google.android.exoplayer.CodecCounters;
 import com.google.android.exoplayer.DummyTrackRenderer;
 import com.google.android.exoplayer.ExoPlaybackException;
@@ -44,7 +46,6 @@ import com.google.android.exoplayer.text.TextRenderer;
 import com.google.android.exoplayer.upstream.BandwidthMeter;
 import com.google.android.exoplayer.upstream.DefaultBandwidthMeter;
 import com.google.android.exoplayer.util.DebugTextViewHelper;
-import com.google.android.exoplayer.util.PlayerControl;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -52,11 +53,9 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
- * A wrapper around {@link ExoPlayer} that provides a higher level interface. It can be prepared
- * with one of a number of {@link RendererBuilder} classes to suit different use cases (e.g. DASH,
- * SmoothStreaming and so on).
+ * Wrapper for ExoPlayer based on ExoPlayerWrapper from project sample code.
  */
-public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventListener,
+public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.EventListener,
         HlsSampleSource.EventListener, DefaultBandwidthMeter.EventListener,
         MediaCodecVideoTrackRenderer.EventListener, MediaCodecAudioTrackRenderer.EventListener,
         StreamingDrmSessionManager.EventListener, DashChunkSource.EventListener, TextRenderer,
@@ -69,17 +68,17 @@ public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventLi
         /**
          * Builds renderers for playback.
          *
-         * @param player The player for which renderers are being built. {@link DemoPlayer#onRenderers}
+         * @param player The player for which renderers are being built. {@link ExoPlayerWrapper#onRenderers}
          *               should be invoked once the renderers have been built. If building fails,
-         *               {@link DemoPlayer#onRenderersError} should be invoked.
+         *               {@link ExoPlayerWrapper#onRenderersError} should be invoked.
          */
-        void buildRenderers(DemoPlayer player);
+        void buildRenderers(ExoPlayerWrapper player);
 
         /**
          * Cancels the current build operation, if there is one. Else does nothing.
          * <p/>
-         * A canceled build operation must not invoke {@link DemoPlayer#onRenderers} or
-         * {@link DemoPlayer#onRenderersError} on the player, which may have been released.
+         * A canceled build operation must not invoke {@link ExoPlayerWrapper#onRenderers} or
+         * {@link ExoPlayerWrapper#onRenderersError} on the player, which may have been released.
          */
         void cancel();
     }
@@ -94,6 +93,8 @@ public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventLi
 
         void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees,
                                 float pixelWidthHeightRatio);
+
+        void onSeek(long oldPos, long newPos);
     }
 
     /**
@@ -204,7 +205,7 @@ public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventLi
     private InternalErrorListener internalErrorListener;
     private InfoListener infoListener;
 
-    public DemoPlayer(RendererBuilder rendererBuilder) {
+    public ExoPlayerWrapper(RendererBuilder rendererBuilder) {
         this.rendererBuilder = rendererBuilder;
         player = ExoPlayer.Factory.newInstance(RENDERER_COUNT, 1000, 5000);
         player.addListener(this);
@@ -314,7 +315,7 @@ public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventLi
     /**
      * Invoked with the results from a {@link RendererBuilder}.
      *
-     * @param renderers      Renderers indexed by {@link DemoPlayer} TYPE_* constants. An individual
+     * @param renderers      Renderers indexed by {@link ExoPlayerWrapper} TYPE_* constants. An individual
      *                       element may be null if there do not exist tracks of the corresponding type.
      * @param bandwidthMeter Provides an estimate of the currently available bandwidth. May be null.
      */
@@ -366,7 +367,12 @@ public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventLi
     public void seekTo(long seekPosition) {
         seekPosition = player.getDuration() == ExoPlayer.UNKNOWN_TIME ? 0
                 : Math.min(Math.max(0, seekPosition), getDuration());
+        long curPos = player.getCurrentPosition();
         player.seekTo(seekPosition);
+
+        for (Listener listener : listeners) {
+            listener.onSeek(curPos, seekPosition);
+        }
     }
 
     public void release() {
@@ -439,7 +445,23 @@ public class DemoPlayer implements ExoPlayer.Listener, ChunkSampleSource.EventLi
 
     @Override
     public void onPlayerStateChanged(boolean playWhenReady, int state) {
+        boolean isStop = ((ExoPlayer.STATE_ENDED == state) && (lastReportedPlaybackState != state));
         maybeReportPlayerState();
+        if (isStop) {
+            resetOnStop();
+        }
+    }
+
+    public void setRepeatMode(boolean enableRepeat) {
+        this.enableRepeat = true;
+    }
+
+    private boolean enableRepeat = false;
+
+    private void resetOnStop() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.resetOnStop()");
+        setPlayWhenReady(enableRepeat);
+        seekTo(0);
     }
 
     @Override

@@ -33,8 +33,8 @@ import java.util.Locale;
 /**
  * Logs player events using {@link Log}.
  */
-public class EventLogger implements DemoPlayer.Listener, DemoPlayer.InfoListener,
-    DemoPlayer.InternalErrorListener {
+public class EventLogger implements ExoPlayerWrapper.Listener, ExoPlayerWrapper.InfoListener,
+    ExoPlayerWrapper.InternalErrorListener {
 
   private static final String TAG = "EventLogger";
   private static final NumberFormat TIME_FORMAT;
@@ -49,7 +49,7 @@ public class EventLogger implements DemoPlayer.Listener, DemoPlayer.InfoListener
   private long[] availableRangeValuesUs;
 
   public EventLogger() {
-    loadStartTimeMs = new long[DemoPlayer.RENDERER_COUNT];
+    loadStartTimeMs = new long[ExoPlayerWrapper.RENDERER_COUNT];
   }
 
   public void startSession() {
@@ -61,7 +61,7 @@ public class EventLogger implements DemoPlayer.Listener, DemoPlayer.InfoListener
     Log.d(TAG, "end [" + getSessionTimeString() + "]");
   }
 
-  // DemoPlayer.Listener
+  // ExoPlayerWrapper.Listener
 
   @Override
   public void onStateChanged(boolean playWhenReady, int state) {
@@ -81,7 +81,12 @@ public class EventLogger implements DemoPlayer.Listener, DemoPlayer.InfoListener
         + ", " + pixelWidthHeightRatio + "]");
   }
 
-  // DemoPlayer.InfoListener
+  @Override
+  public void onSeek(long oldPos, long newPos) {
+    // Ignore
+  }
+
+  // ExoPlayerWrapper.InfoListener
 
   @Override
   public void onBandwidthSample(int elapsedMs, long bytes, long bitrateEstimate) {
@@ -126,7 +131,7 @@ public class EventLogger implements DemoPlayer.Listener, DemoPlayer.InfoListener
         + Integer.toString(trigger) + "]");
   }
 
-  // DemoPlayer.InternalErrorListener
+  // ExoPlayerWrapper.InternalErrorListener
 
   @Override
   public void onLoadError(int sourceId, IOException e) {

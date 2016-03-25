@@ -52,7 +52,7 @@ import java.util.List;
 /**
  * A {@link RendererBuilder} for HLS.
  */
-public class HlsRendererBuilder implements DemoPlayer.RendererBuilder {
+public class HlsRendererBuilder implements ExoPlayerWrapper.RendererBuilder {
 
   private static final int BUFFER_SEGMENT_SIZE = 64 * 1024;
   private static final int MAIN_BUFFER_SEGMENTS = 256;
@@ -71,7 +71,7 @@ public class HlsRendererBuilder implements DemoPlayer.RendererBuilder {
   }
 
   @Override
-  public void buildRenderers(DemoPlayer player) {
+  public void buildRenderers(ExoPlayerWrapper player) {
     currentAsyncBuilder = new AsyncRendererBuilder(context, userAgent, url, player);
     currentAsyncBuilder.init();
   }
@@ -89,12 +89,12 @@ public class HlsRendererBuilder implements DemoPlayer.RendererBuilder {
     private final Context context;
     private final String userAgent;
     private final String url;
-    private final DemoPlayer player;
+    private final ExoPlayerWrapper player;
     private final ManifestFetcher<HlsPlaylist> playlistFetcher;
 
     private boolean canceled;
 
-    public AsyncRendererBuilder(Context context, String userAgent, String url, DemoPlayer player) {
+    public AsyncRendererBuilder(Context context, String userAgent, String url, ExoPlayerWrapper player) {
       this.context = context;
       this.userAgent = userAgent;
       this.url = url;
@@ -138,7 +138,7 @@ public class HlsRendererBuilder implements DemoPlayer.RendererBuilder {
           manifest, DefaultHlsTrackSelector.newDefaultInstance(context), bandwidthMeter,
           timestampAdjusterProvider, HlsChunkSource.ADAPTIVE_MODE_SPLICE);
       HlsSampleSource sampleSource = new HlsSampleSource(chunkSource, loadControl,
-          MAIN_BUFFER_SEGMENTS * BUFFER_SEGMENT_SIZE, mainHandler, player, DemoPlayer.TYPE_VIDEO);
+          MAIN_BUFFER_SEGMENTS * BUFFER_SEGMENT_SIZE, mainHandler, player, ExoPlayerWrapper.TYPE_VIDEO);
       MediaCodecVideoTrackRenderer videoRenderer = new MediaCodecVideoTrackRenderer(context,
           sampleSource, MediaCodecSelector.DEFAULT, MediaCodec.VIDEO_SCALING_MODE_SCALE_TO_FIT,
           5000, mainHandler, player, 50);
@@ -160,17 +160,17 @@ public class HlsRendererBuilder implements DemoPlayer.RendererBuilder {
             url, manifest, DefaultHlsTrackSelector.newVttInstance(), bandwidthMeter,
             timestampAdjusterProvider, HlsChunkSource.ADAPTIVE_MODE_SPLICE);
         HlsSampleSource textSampleSource = new HlsSampleSource(textChunkSource, loadControl,
-            TEXT_BUFFER_SEGMENTS * BUFFER_SEGMENT_SIZE, mainHandler, player, DemoPlayer.TYPE_TEXT);
+            TEXT_BUFFER_SEGMENTS * BUFFER_SEGMENT_SIZE, mainHandler, player, ExoPlayerWrapper.TYPE_TEXT);
         textRenderer = new TextTrackRenderer(textSampleSource, player, mainHandler.getLooper());
       } else {
         textRenderer = new Eia608TrackRenderer(sampleSource, player, mainHandler.getLooper());
       }
 
-      TrackRenderer[] renderers = new TrackRenderer[DemoPlayer.RENDERER_COUNT];
-      renderers[DemoPlayer.TYPE_VIDEO] = videoRenderer;
-      renderers[DemoPlayer.TYPE_AUDIO] = audioRenderer;
-      renderers[DemoPlayer.TYPE_METADATA] = id3Renderer;
-      renderers[DemoPlayer.TYPE_TEXT] = textRenderer;
+      TrackRenderer[] renderers = new TrackRenderer[ExoPlayerWrapper.RENDERER_COUNT];
+      renderers[ExoPlayerWrapper.TYPE_VIDEO] = videoRenderer;
+      renderers[ExoPlayerWrapper.TYPE_AUDIO] = audioRenderer;
+      renderers[ExoPlayerWrapper.TYPE_METADATA] = id3Renderer;
+      renderers[ExoPlayerWrapper.TYPE_TEXT] = textRenderer;
       player.onRenderers(renderers, bandwidthMeter);
     }
 

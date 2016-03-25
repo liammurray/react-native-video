@@ -121,7 +121,7 @@ public class MediaControllerView extends LinearLayout {
             }
         }
     }
-    
+
     public void setShowTimeout(int timeout) {
         hideCallback.setTimeout(timeout);
     }
@@ -140,7 +140,7 @@ public class MediaControllerView extends LinearLayout {
         detachFromParent(this);
         if (mAnchor != null) {
             // See if controller layout params provided in layout resource (hint: pass parent FrameLayout to inflater.inflate())
-            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams)getLayoutParams();
+            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) getLayoutParams();
             if (params == null) {
                 // Default if none specified in layout
                 params = new FrameLayout.LayoutParams(
@@ -187,12 +187,12 @@ public class MediaControllerView extends LinearLayout {
         enable(mPlayPauseButton, playerReady);
         enable(mRewButton, playerReady && mPlayer.canSeekBackward());
         enable(mFfwdButton, playerReady && mPlayer.canSeekForward());
-        enable(mNextButton, playerReady &&  mNextListener != null);
+        enable(mNextButton, playerReady && mNextListener != null);
         enable(mPrevButton, playerReady && mPrevListener != null);
         enable(mProgress, playerReady);
 
     }
-    
+
 
     static final int FADE_ANIM_DURATION = 250;
 
@@ -200,17 +200,17 @@ public class MediaControllerView extends LinearLayout {
         ObjectAnimator anim = ObjectAnimator.ofFloat(view, "alpha", 0);
         anim.setDuration(FADE_ANIM_DURATION);
         anim.addListener(new
-        AnimatorListenerAdapter() {
-            public void onAnimationEnd (Animator animation){
-                view.setAlpha(1);
-                view.setVisibility(View.INVISIBLE);
-            }
-        }
+                                 AnimatorListenerAdapter() {
+                                     public void onAnimationEnd(Animator animation) {
+                                         view.setAlpha(1);
+                                         view.setVisibility(View.INVISIBLE);
+                                     }
+                                 }
         );
         anim.start();
     }
 
-    private static void showView(View view){
+    private static void showView(View view) {
         ObjectAnimator anim = ObjectAnimator.ofFloat(view, "alpha", 0f, 1f);
         anim.setDuration(FADE_ANIM_DURATION);
         anim.start();
@@ -303,12 +303,12 @@ public class MediaControllerView extends LinearLayout {
 
     }
 
-    private String stringForTime(int timeMs) {
-        int totalSeconds = timeMs / 1000;
+    private String stringForTime(long timeMs) {
+        long totalSeconds = timeMs / 1000;
 
-        int seconds = totalSeconds % 60;
-        int minutes = (totalSeconds / 60) % 60;
-        int hours   = totalSeconds / 3600;
+        long seconds = totalSeconds % 60;
+        long minutes = (totalSeconds / 60) % 60;
+        long hours = totalSeconds / 3600;
 
         mFormatBuilder.setLength(0);
         if (hours > 0) {
@@ -318,28 +318,28 @@ public class MediaControllerView extends LinearLayout {
         }
     }
 
-    private void setTextTime(TextView view, int time) {
+    private void setTextTime(TextView view, long time) {
         if (view != null) {
             view.setText(stringForTime(time));
         }
     }
-    private int setProgress() {
+
+    private long setProgress() {
         if (mPlayer == null || mDragging) {
             return 0;
         }
-        int position = 0;
-        int duration = 0;
+        long position = 0;
+        long duration = 0;
         if (mPlayer.canPlay()) {
             position = mPlayer.getCurrentPosition();
             duration = mPlayer.getDuration();
         }
         if (mProgress != null) {
-            // use long to avoid overflow
             long pos = (duration > 0) ? 1000L * position / duration : 0;
-            mProgress.setProgress( (int) pos);
+            mProgress.setProgress((int) pos);
             int percent = mPlayer.getBufferPercentage();
-            long bufferDuration = (percent * (long)duration) / 100;
-            mProgress.setSecondaryProgress( (int) bufferDuration);
+            long bufferDuration = (percent * (long) duration) / 100;
+            mProgress.setSecondaryProgress((int) bufferDuration);
         }
 
         setTextTime(mCurrentTime, position);
@@ -386,7 +386,7 @@ public class MediaControllerView extends LinearLayout {
 
         final boolean uniqueDown = event.getRepeatCount() == 0
                 && event.getAction() == KeyEvent.ACTION_DOWN;
-        if (keyCode ==  KeyEvent.KEYCODE_HEADSETHOOK
+        if (keyCode == KeyEvent.KEYCODE_HEADSETHOOK
                 || keyCode == KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
                 || keyCode == KeyEvent.KEYCODE_SPACE) {
             if (uniqueDown) {
@@ -464,8 +464,7 @@ public class MediaControllerView extends LinearLayout {
 
         if (mPlayer.isFullScreen()) {
             mFullscreenButton.setImageResource(R.drawable.ic_media_fullscreen_shrink);
-        }
-        else {
+        } else {
             mFullscreenButton.setImageResource(R.drawable.ic_media_fullscreen_stretch);
         }
     }
@@ -522,9 +521,9 @@ public class MediaControllerView extends LinearLayout {
 
             long duration = mPlayer.getDuration();
             long newposition = (duration * progress) / 1000L;
-            mPlayer.seekTo( (int) newposition);
+            mPlayer.seekTo((int) newposition);
             if (mCurrentTime != null)
-                mCurrentTime.setText(stringForTime( (int) newposition));
+                mCurrentTime.setText(stringForTime((int) newposition));
         }
 
         public void onStopTrackingTouch(SeekBar bar) {
@@ -550,7 +549,7 @@ public class MediaControllerView extends LinearLayout {
                 return;
             }
 
-            int pos = mPlayer.getCurrentPosition();
+            long pos = mPlayer.getCurrentPosition();
             pos -= 5000; // milliseconds
             mPlayer.seekTo(pos);
             setProgress();
@@ -565,7 +564,7 @@ public class MediaControllerView extends LinearLayout {
                 return;
             }
 
-            int pos = mPlayer.getCurrentPosition();
+            long pos = mPlayer.getCurrentPosition();
             pos += 15000; // milliseconds
             mPlayer.seekTo(pos);
             setProgress();
@@ -583,20 +582,33 @@ public class MediaControllerView extends LinearLayout {
     }
 
     public interface MediaPlayerControl {
-        void    start();
-        void    pause();
-        int     getDuration();
-        int     getCurrentPosition();
-        void    seekTo(int pos);
+        void start();
+
+        void pause();
+
+        long getDuration();
+
+        long getCurrentPosition();
+
+        void seekTo(long pos);
+
         boolean isPlaying();
-        int     getBufferPercentage();
-        long    getBufferDuration();
+
+        int getBufferPercentage();
+
+        long getBufferDuration();
+
         boolean canPlay();
+
         boolean canSeekBackward();
+
         boolean canSeekForward();
+
         boolean canGoFullScreen();
+
         boolean isFullScreen();
-        void    toggleFullScreen();
+
+        void toggleFullScreen();
     }
 
 
