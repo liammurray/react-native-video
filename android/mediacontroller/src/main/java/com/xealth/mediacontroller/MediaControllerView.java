@@ -368,6 +368,22 @@ public class MediaControllerView extends LinearLayout {
         }
 
         int keyCode = event.getKeyCode();
+
+        // Taken from KeyCompatibleMediaController from ExoPlayer project
+        if (mPlayer.canSeekForward() && keyCode == KeyEvent.KEYCODE_MEDIA_FAST_FORWARD) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                mPlayer.seekTo(mPlayer.getCurrentPosition() + 15000); // milliseconds
+                hideCallback.extend();
+            }
+            return true;
+        } else if (mPlayer.canSeekBackward() && keyCode == KeyEvent.KEYCODE_MEDIA_REWIND) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                mPlayer.seekTo(mPlayer.getCurrentPosition() - 5000); // milliseconds
+                hideCallback.extend();
+            }
+            return true;
+        }
+
         final boolean uniqueDown = event.getRepeatCount() == 0
                 && event.getAction() == KeyEvent.ACTION_DOWN;
         if (keyCode ==  KeyEvent.KEYCODE_HEADSETHOOK
@@ -574,6 +590,7 @@ public class MediaControllerView extends LinearLayout {
         void    seekTo(int pos);
         boolean isPlaying();
         int     getBufferPercentage();
+        long    getBufferDuration();
         boolean canPlay();
         boolean canSeekBackward();
         boolean canSeekForward();

@@ -3,17 +3,14 @@ rootProject.name = 'VideoPlayer'
 include ':app'
 
 include ':mediacontroller'
-project(':mediacontroller').projectDir = new File(rootProject.projectDir, '../../../android/mediacontroller')
-
-include ':Android-ScalableVideoView'
-project(':Android-ScalableVideoView').projectDir = new File(rootProject.projectDir, '../../../../Android-ScalableVideoView/library')
-
-//include ':react-native-video'
-//project(':react-native-video').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-video/android')
-
-// Use local dev project
+include ':ScalableVideoView'
+include ':ExoPlayer'
 include ':RCTVideo'
-project(':RCTVideo').projectDir = new File(rootProject.projectDir, '../../../android')
-
 include ':Orientation'
+
+project(':ScalableVideoView').projectDir = new File(rootProject.projectDir, '../../../../Android-ScalableVideoView/library')
+project(':ExoPlayer').projectDir = new File(rootProject.projectDir, '../../../../ExoPlayer/library')
+project(':mediacontroller').projectDir = new File(rootProject.projectDir, '../../../android/mediacontroller')
+project(':RCTVideo').projectDir = new File(rootProject.projectDir, '../../../android')
+//project(':RCTVideo').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-video/android')
 project(':Orientation').projectDir = new File(rootProject.projectDir, '../node_modules/react-native-orientation/android')

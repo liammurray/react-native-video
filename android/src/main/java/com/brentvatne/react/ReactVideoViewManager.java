@@ -77,27 +77,27 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoHostView>
 
     @ReactProp(name = PROP_RESIZE_MODE)
     public void setResizeMode(final ReactVideoHostView hostView, final String resizeModeOrdinalString) {
-        hostView.getVideoView().setResizeModeModifier(ScalableType.values()[Integer.parseInt(resizeModeOrdinalString)]);
+        hostView.getVideoView().setResizeMode(ScalableType.values()[Integer.parseInt(resizeModeOrdinalString)]);
     }
 
     @ReactProp(name = PROP_REPEAT, defaultBoolean = false)
     public void setRepeat(final ReactVideoHostView hostView, final boolean repeat) {
-        hostView.getVideoView().setRepeatModifier(repeat);
+        hostView.getVideoView().setRepeat(repeat);
     }
 
     @ReactProp(name = PROP_PAUSED, defaultBoolean = false)
     public void setPaused(final ReactVideoHostView hostView, final boolean paused) {
-        hostView.getVideoView().setPausedModifier(paused);
+        hostView.getVideoView().setPaused(paused);
     }
 
     @ReactProp(name = PROP_MUTED, defaultBoolean = false)
     public void setMuted(final ReactVideoHostView hostView, final boolean muted) {
-        hostView.getVideoView().setMutedModifier(muted);
+        hostView.getVideoView().setMuted(muted);
     }
 
     @ReactProp(name = PROP_VOLUME, defaultFloat = 1.0f)
     public void setVolume(final ReactVideoHostView hostView, final float volume) {
-        hostView.getVideoView().setVolumeModifier(volume);
+        hostView.getVideoView().setVolume(volume);
     }
 
     @ReactProp(name = PROP_SEEK)

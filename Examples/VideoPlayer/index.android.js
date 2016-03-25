@@ -141,7 +141,7 @@ class VideoPlayer extends Component {
 
   render() {
     var video = (
-      <Video source={{uri: "broadchurch"}}
+      <Video source={{uri: "assets-library:///broadchurch"}}
                  style={styles.fullScreen}
                  rate={this.state.rate}
                  paused={this.state.paused}

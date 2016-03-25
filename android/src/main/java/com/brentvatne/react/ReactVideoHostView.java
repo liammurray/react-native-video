@@ -9,6 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
+import com.brentvatne.react.com.brentvatne.react.exoplayer.ReactVideoExoView;
 import com.facebook.react.uimanager.ThemedReactContext;
 
 /**
@@ -104,8 +105,10 @@ public class ReactVideoHostView extends FrameLayout {
     }
 
     private static void reParentView(ViewGroup parent, View child, LayoutParams params) {
+        child.onStartTemporaryDetach(); //TODO Necessary? Useful?
         ViewUtil.detachFromParent(child);
         parent.addView(child, params);
+        child.onFinishTemporaryDetach();
     }
 
     public boolean goFullScreen() {
@@ -133,7 +136,10 @@ public class ReactVideoHostView extends FrameLayout {
         return mVideoViewContainer;
     }
 
-    public ReactVideoView getVideoView() {
+//    public ReactVideoView getVideoView() {
+//        return mVideoViewContainer.getVideoView();
+//    }
+    public ReactVideoExoView getVideoView() {
         return mVideoViewContainer.getVideoView();
     }
 

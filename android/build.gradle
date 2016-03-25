@@ -4,12 +4,19 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:1.1.3'
+        classpath 'com.android.tools.build:gradle:1.2.3'
+        classpath 'com.novoda:bintray-release:0.3.4'
+    }
+}
+
+allprojects {
+    repositories {
+        // For ExoPlayer dependencies, etc.
+        mavenCentral()
     }
 }
 
 apply plugin: 'com.android.library'
-
 
 android {
     compileSdkVersion 23
@@ -26,9 +33,11 @@ android {
     }
 }
 
+
 dependencies {
     compile 'com.facebook.react:react-native:0.19.+'
     //compile 'com.yqritc:android-scalablevideoview:1.0.1'
-    compile project(':Android-ScalableVideoView')
+    compile project(':ScalableVideoView')
+    compile project(':ExoPlayer')
     compile project(':mediacontroller')
 }

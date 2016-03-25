@@ -10,6 +10,7 @@ import android.widget.FrameLayout;
 
 import com.brentvatne.RCTVideo.R;
 import com.brentvatne.react.ReactVideo.Events;
+import com.brentvatne.react.com.brentvatne.react.exoplayer.ReactVideoExoView;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
@@ -33,11 +34,14 @@ import static com.brentvatne.react.ReactVideo.EVENT_PROP_WHAT;
 /**
  * Frame that parents video view and media transport controller (player controls)
  */
-public class ReactVideoViewContainer extends FrameLayout implements View.OnSystemUiVisibilityChangeListener, PlayerEventListener, MediaControllerView.VisibilityListener, MediaControllerView.MediaPlayerControl {
+public class ReactVideoViewContainer extends FrameLayout implements View.OnSystemUiVisibilityChangeListener,
+        PlayerEventListener, MediaControllerView.VisibilityListener {
 
     private ReactVideoHostView mHostView;
 
-    private ReactVideoView mVideoView;
+    //private ReactVideoView mVideoView;
+
+    private ReactVideoExoView mVideoView;
 
     private MediaControllerView mController;
 
@@ -58,14 +62,22 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     }
     private State mState = State.STOPPED;
 
+    private MediaControllerView.MediaPlayerControl playerControl = createPlayerControl();
+
 
     public ReactVideoViewContainer(ThemedReactContext context, ReactVideoHostView hostView) {
         super(context);
         mHostView = hostView;
-        mVideoView = new ReactVideoView(context, this);
-        addView(mVideoView, newFrameLayoutParams());
 
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+
+        //mVideoView = new ReactVideoView(context, this);
+        //playerControl = createPlayerControlOld();
+        mVideoView = (ReactVideoExoView)inflater.inflate(R.layout.exo_video_view, this, false);
+        playerControl = createPlayerControl();
+        mVideoView.setEventListener(this);
+        addView(mVideoView, newFrameLayoutParams());
+
         infoView = (InfoView)inflater.inflate(R.layout.info_view, this, false);
         addView(infoView);
         infoView.setState(InfoView.State.HIDDEN);
@@ -96,6 +108,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     }
 
+
+
     /** Enables or disables controller */
     public void setShowControls(final boolean showControls) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setShowControls(): " + showControls);
@@ -106,7 +120,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
                 showController();
             }
             mController.setAnchorView(this);
-            mController.setMediaPlayer(this);
+
+            mController.setMediaPlayer(playerControl);
             mController.setVisibilityListener(this);
         } else if (mController != null) {
             mController.hide();
@@ -166,7 +181,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     public boolean onTouchEvent(MotionEvent ev) {
         //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent()");
         // Ignore toggle logic while player is in bad state
-        if (ev.getAction() == MotionEvent.ACTION_DOWN && canPlay()) {
+        if (ev.getAction() == MotionEvent.ACTION_DOWN && playerControl.canPlay()) {
             // First finger down
             if (mController != null) {
                 if (State.PLAYING.equals(mState)) {
@@ -174,7 +189,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
                     toggleController();
                 } else {
                     // While stopped or paused tapping resumes or starts playback. Listener will show controller.
-                    start();
+                    playerControl.start();
                 }
             } else {
                 // No controller. Tap is play pause.
@@ -186,9 +201,9 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     private void togglePlayPause() {
         if (State.PLAYING.equals(mState)) {
-            pause();
+            playerControl.pause();
         } else {
-            start();
+            playerControl.start();
         }
     }
 
@@ -201,77 +216,166 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         }
     }
 
-    @Override
-    public void pause() {
-        mVideoView.pause();
+
+//    MediaControllerView.MediaPlayerControl createPlayerControlOld() {
+//        return  new MediaControllerView.MediaPlayerControl() {
+//
+//            @Override
+//            public void start() {
+//                mVideoView.start();
+//            }
+//
+//            @Override
+//            public void pause() {
+//                mVideoView.pause();
+//            }
+//
+//            @Override
+//            public int getDuration() {
+//                return mVideoView.getDuration();
+//            }
+//
+//            @Override
+//            public int getCurrentPosition() {
+//                if (State.STOPPED.equals(mState)) {
+//                    return 0;
+//                }
+//                return mVideoView.getCurrentPosition();
+//            }
+//
+//            @Override
+//            public void seekTo(int pos) {
+//                mVideoView.seekTo(pos);
+//            }
+//
+//            @Override
+//            public boolean isPlaying() {
+//                return State.PLAYING.equals(mState);
+//            }
+//
+//            @Override
+//            public int getBufferPercentage() {
+//                return mVideoView.getBufferPercentage();
+//            }
+//
+//            @Override
+//            public boolean canPlay() {
+//                return mVideoView.isPrepared();
+//            }
+//
+//            @Override
+//            public boolean canSeekBackward() {
+//                return true;
+//            }
+//
+//            @Override
+//            public boolean canSeekForward() {
+//                return true;
+//            }
+//
+//            @Override
+//            public boolean canGoFullScreen() {
+//                return mHostView.canGoFullScreen();
+//            }
+//
+//            @Override
+//            public boolean isFullScreen() {
+//                return mHostView.isFullScreen();
+//            }
+//
+//            @Override
+//            public void toggleFullScreen() {
+//                doFullScreenToggle();
+//            }
+//        };
+//    }
+
+    MediaControllerView.MediaPlayerControl createPlayerControl() {
+        return  new MediaControllerView.MediaPlayerControl() {
+
+            @Override
+            public void start() {
+                mVideoView.getPlayer().setPlayWhenReady(true);
+            }
+
+            @Override
+            public void pause() {
+                mVideoView.getPlayer().setPlayWhenReady(false);
+            }
+
+            @Override
+            public int getDuration() {
+                // TODO update ret val
+                return (int)mVideoView.getPlayer().getDuration();
+            }
+
+            @Override
+            public int getCurrentPosition() {
+                // TODO update ret val
+                return (int)mVideoView.getPlayer().getCurrentPosition();
+            }
+
+            @Override
+            public void seekTo(int pos) {
+                mVideoView.getPlayer().seekTo(pos);
+            }
+
+            @Override
+            public boolean isPlaying() {
+                return State.PLAYING.equals(mState);
+                //return mVideoView.getPlayer().getPlayWhenReady();
+            }
+
+            @Override
+            public int getBufferPercentage() {
+                return mVideoView.getPlayer().getBufferedPercentage();
+            }
+
+            @Override
+            public long getBufferDuration() {
+                return mVideoView.getPlayer().getBufferedDuration();
+            }
+
+            @Override
+            public boolean canPlay() {
+                return mVideoView.getPlayer() != null && mVideoView.getPlayer().canPlay();
+            }
+
+            @Override
+            public boolean canSeekBackward() {
+                return true;
+            }
+
+            @Override
+            public boolean canSeekForward() {
+                return true;
+            }
+
+            @Override
+            public boolean canGoFullScreen() {
+                return mHostView.canGoFullScreen();
+            }
+
+            @Override
+            public boolean isFullScreen() {
+                return mHostView.isFullScreen();
+            }
+
+            @Override
+            public void toggleFullScreen() {
+                doFullScreenToggle();
+            }
+        };
     }
 
-    @Override
-    public void start() {
-        mVideoView.start();
-    }
 
-    @Override
-    public int getDuration() {
-        return  mVideoView.getDuration();
-    }
-
-    @Override
-    public int getCurrentPosition() {
-        if (State.STOPPED.equals(mState)) {
-            return 0;
-        }
-        return  mVideoView.getCurrentPosition();
-    }
-
-    @Override
-    public void seekTo(int pos) {
-        mVideoView.seekTo(pos);
-    }
-
-    @Override
-    public boolean isPlaying() {
-        return State.PLAYING.equals(mState);
-    }
-
-    @Override
-    public int getBufferPercentage() {
-        return mVideoView.getBufferPercentage();
-    }
-
-    @Override
-    public boolean canGoFullScreen() {
-        return mHostView.canGoFullScreen();
-    }
-
-    @Override
-    public  boolean canPlay() {
-        return mVideoView.isPrepared();
-    }
-
-    @Override
-    public  boolean canSeekBackward() {
-        return true;
-    }
-
-    @Override
-    public  boolean canSeekForward() {
-        return true;
-    }
-
-
-    @Override
-    public boolean isFullScreen() {
-        return mHostView.isFullScreen();
-    }
-
+    /** Id for React view */
     private int getHostViewId() {
         return mHostView.getId();
     }
 
-    @Override
-    public void toggleFullScreen() {
-        if (isFullScreen()) {
+    public void doFullScreenToggle() {
+        if (mHostView.isFullScreen()) {
             mHostView.goEmbed();
         } else {
             mHostView.goFullScreen();
@@ -283,6 +387,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      */
     public void doInit() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doInit()");
+        //mVideoView.doInit();
         mVideoView.doInit();
         setShowControls(mShowControls);
     }
@@ -292,6 +397,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      */
     public void doCleanup() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doCleanup()");
+        //mVideoView.doCleanup();
         mVideoView.doCleanup();
         if (mController != null) {
             // Since we disable callbacks we can't rely on stop callbacks
@@ -304,15 +410,15 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         }
     }
 
-    public ReactVideoView getVideoView() {
-        return mVideoView;
-    }
+//    public ReactVideoView getVideoView() {
+//        return mVideoView;
+//    }
 
     /**
      * Shows with timeout if playing. Otherwise shows and persists.
      */
     private void showController() {
-        boolean persist = !isPlaying();
+        boolean persist = !playerControl.isPlaying();
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.showController(): persist: " + persist);
         mController.show(persist);
     }
@@ -335,7 +441,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         if (mController != null) {
             mController.onFullScreenSwitch();
         }
-        Events event = isFullScreen() ? Events.EVENT_ENTER_FS : Events.EVENT_EXIT_FS;
+        Events event = playerControl.isFullScreen() ? Events.EVENT_ENTER_FS : Events.EVENT_EXIT_FS;
         mEventEmitter.receiveEvent(getHostViewId(), event.toString(), null);
     }
 
@@ -362,7 +468,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     public void onProgress(int currentPos) {
         WritableMap event = Arguments.createMap();
         event.putDouble(EVENT_PROP_CURRENT_TIME, currentPos / 1000.0);
-        event.putDouble(EVENT_PROP_PLAYABLE_DURATION, mVideoView.getBufferDuration() / 1000.0);
+        event.putDouble(EVENT_PROP_PLAYABLE_DURATION, playerControl.getBufferDuration() / 1000.0);
         mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_PROGRESS.toString(), event);
     }
 
@@ -370,7 +476,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     public void onBuffer(int percent, int duration) {
         if (!State.PLAYING.equals(mState)) {
             WritableMap event = Arguments.createMap();
-            event.putDouble(EVENT_PROP_PLAYABLE_DURATION, mVideoView.getBufferDuration() / 1000.0);
+            event.putDouble(EVENT_PROP_PLAYABLE_DURATION, playerControl.getBufferDuration() / 1000.0);
             mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_PROGRESS.toString(), event);
         }
     }
@@ -388,7 +494,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public void onError(int what, int extra) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onError()");
-        if (!mVideoView.isPrepared()) {
+        if (!playerControl.canPlay()) {
+            //TODO Allow retry for network uri vs local
             infoView.setState(InfoView.State.FAILED);
             if (mController != null) {
                 mController.onStop();
@@ -456,6 +563,10 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         if (mController != null) {
             mController.onPlay();
         }
+    }
+
+    public ReactVideoExoView getVideoView() {
+        return mVideoView;
     }
 
 }
