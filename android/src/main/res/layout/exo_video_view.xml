@@ -5,20 +5,15 @@
     android:layout_height="match_parent"
     android:layout_gravity="center">
 
-    <!--SurfaceView android:id="@+id/surface_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_gravity="center"/-->
-
     <TextureView android:id="@+id/texture_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"/>
 
-    <View android:id="@+id/shutter"
+    <!--View android:id="@+id/shutter"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/black"/>
+        android:background="@android:color/black"/-->
 
     <com.google.android.exoplayer.text.SubtitleLayout android:id="@+id/subtitles"
         android:layout_width="match_parent"

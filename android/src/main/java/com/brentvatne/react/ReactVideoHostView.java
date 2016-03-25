@@ -107,6 +107,7 @@ public class ReactVideoHostView extends FrameLayout {
     private static void reParentView(ViewGroup parent, View child, LayoutParams params) {
         child.onStartTemporaryDetach(); //TODO Necessary? Useful?
         ViewUtil.detachFromParent(child);
+        child.destroyDrawingCache(); // Not sure necessary
         parent.addView(child, params);
         child.onFinishTemporaryDetach();
     }
@@ -136,9 +137,7 @@ public class ReactVideoHostView extends FrameLayout {
         return mVideoViewContainer;
     }
 
-//    public ReactVideoView getVideoView() {
-//        return mVideoViewContainer.getVideoView();
-//    }
+
     public ReactVideoExoView getVideoView() {
         return mVideoViewContainer.getVideoView();
     }

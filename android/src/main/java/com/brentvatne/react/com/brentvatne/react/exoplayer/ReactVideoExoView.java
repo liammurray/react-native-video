@@ -7,7 +7,6 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
-import android.view.View;
 import android.widget.FrameLayout;
 
 import com.brentvatne.RCTVideo.R;
@@ -30,7 +29,9 @@ import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.util.List;
 
-
+/**
+ * View that renders ExoPlayer video
+ */
 public class ReactVideoExoView extends FrameLayout
         implements ExoPlayerWrapper.Listener, ExoPlayerWrapper.CaptionListener, ExoPlayerWrapper.Id3MetadataListener,
         AudioCapabilitiesReceiver.Listener/*, SurfaceHolder.Callback*/, TextureViewScaleManager.SurfaceUser {
@@ -47,6 +48,8 @@ public class ReactVideoExoView extends FrameLayout
     private long playerPosition;
 
     private PlayerEventListener mListener;
+
+    private static final String FILE_SCHEME = "file";
 
     //TODO Set user agent
     private final String userAgent = Util.getUserAgent(getContext(), "ReactVideo");
@@ -82,16 +85,28 @@ public class ReactVideoExoView extends FrameLayout
     private String provider;
 
     private static boolean enableProgressCallbacks = true;
+    private static boolean enableBufferProgressCallbacks = true;
 
     private WeakRefCallback.DoRunnable progressRunnable = new WeakRefCallback.DoRunnable() {
         @Override
         public boolean doRun() {
             mListener.onProgress(player.getCurrentPosition());
-            return enableProgressCallbacks && player.isPlaybackActive();
+            return enableProgressCallbacks && player.isPlaying();
         }
     };
     private static final int PROGRESS_UPDATE_INTERVAL = 250;
     private Callback progressCallback = new WeakRefCallback(mHandler, PROGRESS_UPDATE_INTERVAL, progressRunnable);
+
+    private WeakRefCallback.DoRunnable bufferingRunnable = new WeakRefCallback.DoRunnable() {
+        @Override
+        public boolean doRun() {
+            mListener.onBuffer(player.getBufferedPercentage(), player.getBufferedDuration());
+            return enableBufferProgressCallbacks && player.isBuffering();
+        }
+    };
+    private static final int BUFFER_UPDATE_INTERVAL = 500;
+    private Callback bufferingCallback = new WeakRefCallback(mHandler, BUFFER_UPDATE_INTERVAL, bufferingRunnable);
+
 
     private AudioCapabilitiesReceiver audioCapabilitiesReceiver;
 
@@ -126,6 +141,7 @@ public class ReactVideoExoView extends FrameLayout
 
 
     private ExoPlayerWrapper.RendererBuilder getRendererBuilder() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.getRendererBuilder(): creating builder for: " + contentUri);
         switch (contentType) {
 //            case Util.TYPE_SS:
 //                return new SmoothStreamingRendererBuilder(this, userAgent, contentUri.toString(),
@@ -142,11 +158,6 @@ public class ReactVideoExoView extends FrameLayout
         }
     }
 
-//    public ExoPlayerWrapper getPlayer() {
-//        return player;
-//    }
-
-    static final String FILE_SCHEME="file";
 
     public void  setSrc(String uriString, final String type, final boolean isNetwork, final boolean isAsset) {
         srcUri = Uri.parse(uriString);
@@ -159,13 +170,12 @@ public class ReactVideoExoView extends FrameLayout
                 contentUri = srcUri;
             }
         } else if (!isNetwork) {
-            // Raw resource TODO figure out why DefaultUriDataSourceWrapper fails (should work!)
+            // Raw resource
             contentUri = Uri.parse("android.resource://" + context.getPackageName() + "/raw/" + uriString);
         } else {
             contentUri = srcUri;
         }
 
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.setSrc(): original uri: " + srcUri);
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.setSrc(): content uri:" + contentUri);
 
         contentTypeExt = type;
@@ -197,11 +207,7 @@ public class ReactVideoExoView extends FrameLayout
             player.setMetadataListener(this);
             applySavedState();
             playerNeedsPrepare = true;
-
-            //mediaController.setMediaPlayer(player.getPlayerControl());
-            //TODO mediaController.setEnabled(true);
-
-            //TODO optional
+            //TODO add optional flag for this logging
             eventLogger = new EventLogger();
             eventLogger.startSession();
             player.addListener(eventLogger);
@@ -210,13 +216,10 @@ public class ReactVideoExoView extends FrameLayout
 
         }
         if (playerNeedsPrepare) {
-            // Attempt to build renderers, then play if setPlayWhenReady() was called
+            // Attempt to build renderers. Auto plays bases on how setPlayWhenReady() was called...
             player.prepare();
             playerNeedsPrepare = false;
-            //updateButtonVisibilities();
         }
-        //Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): set surface: " + surfaceView.getHolder().getSurface());
-        //player.setSurface(surfaceView.getHolder().getSurface());
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): set surface: " + textureViewManager.getSurface());
         player.setSurface(textureViewManager.getSurface());
         player.setPlayWhenReady(playWhenReady);
@@ -261,45 +264,64 @@ public class ReactVideoExoView extends FrameLayout
     // ExoPlayerWrapper.Listener implementation
 
     @Override
-    public void onStateChanged(boolean playWhenReady, int playbackState) {
-        if (playbackState == ExoPlayer.STATE_ENDED) {
-            mListener.onStop();
-        }
+    public void onStateChanged(boolean playWhenReady, int prevPlaybackState, int playbackState) {
 
-        switch(playbackState) {
-            case ExoPlayer.STATE_BUFFERING:
-                mListener.onBuffer(player.getBufferedPercentage(), player.getBufferedDuration());
-                break;
-            case ExoPlayer.STATE_ENDED:
-                // Always play from beginning even though internally player may stop and maintain pos at end
-                playerPosition = 0;
-                progressCallback.cancel();
-                mListener.onStop();
-                break;
-            case ExoPlayer.STATE_IDLE:
-                progressCallback.cancel();
-                break;
-            case ExoPlayer.STATE_PREPARING:
-                progressCallback.cancel();
-                preparePending = true;
-                mListener.onLoad(srcUri.toString(), contentTypeExt, conentIsNetwork);
-                break;
-            case ExoPlayer.STATE_READY:
-                if (preparePending) {
-                    mListener.onLoadComplete(player.getCurrentPosition(), player.getDuration());
-                    preparePending = false;
-                }
-                if (playWhenReady) {
-                    mListener.onPlay();
-                    progressCallback.set();
-                } else {
-                    mListener.onPause();
-                    progressCallback.cancel();
-                }
-                break;
-            default:
-                //TODO
-                break;
+        if (playbackState != ExoPlayer.STATE_READY) {
+            progressCallback.cancel();
+        }
+        if (playbackState != ExoPlayer.STATE_BUFFERING) {
+            bufferingCallback.cancel();
+        }
+        boolean isStateChange = (prevPlaybackState != playbackState);
+        if (isStateChange) {
+            switch (playbackState) {
+                case ExoPlayer.STATE_BUFFERING:
+                    // ExoPlayer only notifies once when we transition to buffering state
+                    mListener.onBuffer(player.getBufferedPercentage(), player.getBufferedDuration());
+                    bufferingCallback.set();
+                    break;
+                case ExoPlayer.STATE_ENDED:
+                    // Always play from beginning even though internally player may stop and maintain pos at end
+                    playerPosition = 0;
+                    mListener.onStop();
+                    break;
+                case ExoPlayer.STATE_IDLE:
+                    break;
+                case ExoPlayer.STATE_PREPARING:
+                    preparePending = true;
+                    mListener.onLoad(srcUri.toString(), contentTypeExt, conentIsNetwork);
+                    break;
+                case ExoPlayer.STATE_READY:
+                    if (preparePending) {
+                        mListener.onLoadComplete(player.getCurrentPosition(), player.getDuration());
+                        preparePending = false;
+                    }
+                    if (playWhenReady) {
+                        mListener.onPlay();
+                        progressCallback.set();
+                    } else {
+                        mListener.onPause();
+                        progressCallback.cancel();
+                    }
+                    break;
+                default:
+                    //TODO
+                    break;
+            }
+        } else {
+            switch (playbackState) {
+                case ExoPlayer.STATE_READY:
+                    if (playWhenReady) {
+                        mListener.onPlay();
+                        progressCallback.set();
+                    } else {
+                        mListener.onPause();
+                        progressCallback.cancel();
+                    }
+                    break;
+                default:
+                    break;
+            }
         }
 
     }
@@ -320,7 +342,7 @@ public class ReactVideoExoView extends FrameLayout
         //ExoPlaybackException, UnsupportedDrmException
         Log.d(ReactVideoViewManager.REACT_CLASS, "onError(): " + e);
         playerNeedsPrepare = true;
-        mListener.onError(-101,-101); //TODO better codes
+        mListener.onError(e, true);
     }
 
     @Override
@@ -360,27 +382,6 @@ public class ReactVideoExoView extends FrameLayout
         }
     }
 
-//    @Override
-//    public void surfaceCreated(SurfaceHolder holder) {
-//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.surfaceCreated(): surface: " + holder.getSurface());
-//        if (player != null) {
-//            player.setSurface(holder.getSurface());
-//        }
-//    }
-//
-//    @Override
-//    public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
-//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.surfaceChanged(): surface: " + holder.getSurface());
-//        //TODO update matrix
-//    }
-//
-//    @Override
-//    public void surfaceDestroyed(SurfaceHolder holder) {
-//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.surfaceDestroyed(): (clearing surface) player: " + player);
-//        if (player != null) {
-//            player.blockingClearSurface();
-//        }
-//    }
 
     private void configureSubtitleView() {
         CaptionStyleCompat style;
@@ -449,7 +450,7 @@ public class ReactVideoExoView extends FrameLayout
     }
 
     public boolean isPlaying() {
-        return (player != null) && player.isPlaybackActive();
+        return (player != null) && player.isPlaying();
     }
 
     @Override

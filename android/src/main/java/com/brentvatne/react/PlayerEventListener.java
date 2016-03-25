@@ -9,7 +9,8 @@ public interface PlayerEventListener {
     void onProgress(long curPos);
     void onBuffer(int percent, long duration);
     void onSeek(long msec, long currentPosition);
-    void onError(int what, int extra);
+    void onError(Exception e, boolean isStopOnError);
+
     void onVolume(float leftVolume, float rightVolume);
     void onMute(boolean muted);
 

@@ -15,6 +15,14 @@ import Orientation from 'react-native-orientation';
 
 const fullScreen = false;
 
+const videoUrl="https://test-xealth.twistle.com/attachment/View?seqnum=7dd4b042-e7eb-11e5-be5d-06fedffead3d&size=playlist&qat=ITWru8i5xzj8cmofHaV10EUllPicFWh7"
+const videoContentType="m3u8" //hls
+
+//videoUrl="assets-library:///broadchurch"
+//videoContentType="mp4"
+
+
+
 class VideoPlayer extends Component {
   constructor(props) {
     super(props);
@@ -33,13 +41,15 @@ class VideoPlayer extends Component {
     duration: 0.0,
     currentTime: 0.0,
     controls:true,
-    autoHideNav:fullScreen
+    autoHideNav: fullScreen,
+    url: videoUrl,
+    contentType: videoContentType,
   };
 
   componentDidMount() {
     //Orientation.lockToPortrait();
     //Orientation.lockToLandscape();
-    //Orientation.unlockAllOrientations(); 
+    //Orientation.unlockAllOrientations();
     //Orientation.addOrientationListener(this._orientationDidChange);
   }
 
@@ -50,7 +60,7 @@ class VideoPlayer extends Component {
   onEnterFullScreen(data) {
     console.log("onEnterFullScreen")
     AndroidUtil.setFullScreenMode(true);
-    Orientation.unlockAllOrientations(); 
+    Orientation.unlockAllOrientations();
     this.setState({autoHideNav: true});
   }
 
@@ -141,7 +151,7 @@ class VideoPlayer extends Component {
 
   render() {
     var video = (
-      <Video source={{uri: "assets-library:///broadchurch"}}
+      <Video source={{uri: this.state.url, type: this.state.contentType}}
                  style={styles.fullScreen}
                  rate={this.state.rate}
                  paused={this.state.paused}
@@ -160,7 +170,7 @@ class VideoPlayer extends Component {
 
    var extraControls = this.renderExtraControls();
    return (<View style={styles.container}>{video}{extraControls}</View>);
-  
+
   }
 }
 

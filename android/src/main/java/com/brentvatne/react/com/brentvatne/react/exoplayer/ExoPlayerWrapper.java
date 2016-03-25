@@ -87,7 +87,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
      * A listener for core events.
      */
     public interface Listener {
-        void onStateChanged(boolean playWhenReady, int playbackState);
+        void onStateChanged(boolean playWhenReady, int prevPlaybackState, int playbackState);
 
         void onError(Exception e);
 
@@ -263,6 +263,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     }
 
     public void setSurface(Surface surface, boolean block) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.setSurface(): " + surface);
         this.surface = surface;
         pushSurface(block);
     }
@@ -303,14 +304,6 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         } else {
             setSelectedTrack(TYPE_VIDEO, videoTrackToRestore);
         }
-    }
-
-    public boolean isPlaybackActive() {
-        return player.getPlaybackState() == ExoPlayer.STATE_READY && player.getPlayWhenReady();
-    }
-
-    public boolean isPlaybackPaused() {
-        return player.getPlaybackState() == ExoPlayer.STATE_READY && !player.getPlayWhenReady();
     }
 
     public void prepare() {
@@ -389,6 +382,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     }
 
     public void release() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.release()");
         rendererBuilder.cancel();
         rendererBuildingState = RENDERER_BUILDING_STATE_IDLE;
         surface = null;
@@ -529,6 +523,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         }
     }
 
+
     @Override
     public void onDecoderInitializationError(DecoderInitializationException e) {
         if (internalErrorListener != null) {
@@ -643,7 +638,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         int playbackState = getPlaybackState();
         if (lastReportedPlayWhenReady != playWhenReady || lastReportedPlaybackState != playbackState) {
             for (Listener listener : listeners) {
-                listener.onStateChanged(playWhenReady, playbackState);
+                listener.onStateChanged(playWhenReady, lastReportedPlaybackState, playbackState);
             }
             lastReportedPlayWhenReady = playWhenReady;
             lastReportedPlaybackState = playbackState;
@@ -666,8 +661,37 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         }
     }
 
+    private boolean isActiveState(int state) {
+       return (ExoPlayer.STATE_PREPARING == state ||
+               ExoPlayer.STATE_BUFFERING == state ||
+               ExoPlayer.STATE_READY == state);
+    }
+
+    /** Is playing from ui standpoint, i.e., may be waiting to load or buffer, but still in playback state */
+    public boolean isPlaying() {
+        return isActiveState(player.getPlaybackState()) && player.getPlayWhenReady();
+    }
+
+    /** Is paused from ui standpoint, i.e., may be waiting to load or buffer, but still in paused state */
+    public boolean isPaused() {
+        return isActiveState(player.getPlaybackState()) && player.getPlayWhenReady();
+    }
+
+    public boolean isBuffering() {
+        return player.getPlaybackState() == ExoPlayer.STATE_BUFFERING;
+    }
+
+    public boolean isReadyPlaying() {
+        return player.getPlaybackState() == ExoPlayer.STATE_READY && player.getPlayWhenReady();
+    }
+
+    public boolean isReadyPaused() {
+        return player.getPlaybackState() == ExoPlayer.STATE_READY && player.getPlayWhenReady();
+    }
+
+    /** Does a request to prepare() make sense? Do we have a valid url, etc.? */
     public boolean canPlay() {
-        return RENDERER_BUILDING_STATE_IDLE != rendererBuildingState;
+        return true; //TODO
     }
 
 }

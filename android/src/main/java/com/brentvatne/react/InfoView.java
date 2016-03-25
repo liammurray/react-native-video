@@ -44,6 +44,9 @@ public class InfoView extends FrameLayout {
     }
 
     public void setState(State state) {
+        if (this.state == state) {
+            return;
+        }
         this.state = state;
         switch (state) {
             case LOADING:

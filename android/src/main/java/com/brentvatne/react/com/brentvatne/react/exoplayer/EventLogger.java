@@ -64,9 +64,9 @@ public class EventLogger implements ExoPlayerWrapper.Listener, ExoPlayerWrapper.
   // ExoPlayerWrapper.Listener
 
   @Override
-  public void onStateChanged(boolean playWhenReady, int state) {
+  public void onStateChanged(boolean playWhenReady, int prevPlaybackState, int state) {
     Log.d(TAG, "state [" + getSessionTimeString() + ", " + playWhenReady + ", "
-        + getStateString(state) + "]");
+        + getStateString(prevPlaybackState) +"->" + getStateString(state) + "]");
   }
 
   @Override

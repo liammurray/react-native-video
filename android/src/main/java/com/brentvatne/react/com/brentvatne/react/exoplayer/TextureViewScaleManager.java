@@ -2,9 +2,11 @@ package com.brentvatne.react.com.brentvatne.react.exoplayer;
 
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;
+import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
 
+import com.brentvatne.react.ReactVideoViewManager;
 import com.yqritc.scalablevideoview.ScalableType;
 import com.yqritc.scalablevideoview.ScaleManager;
 import com.yqritc.scalablevideoview.Size;
@@ -70,11 +72,13 @@ public class TextureViewScaleManager implements TextureView.SurfaceTextureListen
         if (surfaceUser != null) {
             surfaceUser.setSurface(null);
         }
-        return false;
+        // Always return true so texture is released
+        return true;
     }
 
     @Override
     public void onSurfaceTextureUpdated(SurfaceTexture surface) {
+        //Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureUpdated()");
     }
     
 
