@@ -169,9 +169,10 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-        //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent()");
+
         // Ignore toggle logic while player is in bad state
         if (ev.getAction() == MotionEvent.ACTION_DOWN && playerControl.canPlay()) {
+            Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent(): DOWN");
             // First finger down
             if (mController != null) {
                 if (mVideoView.isPlaying()) {
@@ -301,7 +302,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      */
     public void doInit() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doInit()");
-        mVideoView.doInit();
+        mVideoView.init();
         setShowControls(mShowControls);
     }
 
@@ -310,7 +311,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      */
     public void doCleanup() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doCleanup()");
-        mVideoView.doCleanup();
+        mVideoView.cleanUp(true);
         if (mController != null) {
             // Since we disable callbacks we can't rely on stop callbacks
             mController.onStop();

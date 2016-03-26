@@ -254,18 +254,22 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         id3MetadataListener = listener;
     }
 
-    public void setSurface(Surface surface) {
-        setSurface(surface, false);
-    }
+
 
     public Surface getSurface() {
         return surface;
     }
 
+    public void setSurface(Surface surface) {
+        setSurface(surface, false);
+    }
+
     public void setSurface(Surface surface, boolean block) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.setSurface(): " + surface);
-        this.surface = surface;
-        pushSurface(block);
+        if (this.surface != surface) {
+            this.surface = surface;
+            pushSurface(block);
+        }
     }
 
     public int getTrackCount(int type) {

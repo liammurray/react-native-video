@@ -75,4 +75,24 @@ public class ViewUtil {
         dumpChild(view);
     }
 
+    /**
+     * Debug helper for Override onMeasure, copy the following line and log it.
+     *
+     * describeMeasureInfo(this, getSuggestedMinimumWidth(), getSuggestedMinimumHeight(), widthMeasureSpec, heightMeasureSpec);
+     *
+     * Log.d(TAG, "onMeasure(): " + ViewUtil.describeMeasureInfo(this, getSuggestedMinimumWidth(), getSuggestedMinimumHeight(), widthMeasureSpec, heightMeasureSpec));
+     *
+     */
+    public static String describeMeasureInfo(View view, int minWidth,
+                                      int minHeight, int widthMeasureSpec,
+                                      int heightMeasureSpec){
+        final int specWidth = MeasureSpec.getSize(widthMeasureSpec);
+        final int specHeight = MeasureSpec.getSize(heightMeasureSpec);
+        return "min: (" + minWidth + "," + minHeight + "); spec: (" + specWidth + "," + specHeight + "); meas: (" + view.getMeasuredWidth() + "," + view.getMeasuredHeight() +")";
+
+    }
+
+    public static String describeSize(int left, int top, int right, int bottom) {
+        return "(" + left + "," + top + "," + right + "," + bottom + ")";
+    }
 }

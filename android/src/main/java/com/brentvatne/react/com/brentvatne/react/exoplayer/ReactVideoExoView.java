@@ -192,7 +192,7 @@ public class ReactVideoExoView extends FrameLayout
         provider = "Unspecified provider"; //TODO
         configureSubtitleView();
         if (isForeground) {
-            preparePlayer(true);
+            preparePlayer(!isPaused);
         }
     }
 
@@ -229,8 +229,10 @@ public class ReactVideoExoView extends FrameLayout
 
     private void releasePlayer() {
         progressCallback.cancel();
+        bufferingCallback.cancel();
         if (player != null) {
             playerPosition = player.getCurrentPosition();
+            //player.setSurface(null, true);
             player.stop();
             player.release();
             player = null;
@@ -239,33 +241,33 @@ public class ReactVideoExoView extends FrameLayout
         }
     }
 
-    public void doInit() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doInit() ");
-        resumeForeground();
-    }
-
-    public void doCleanup() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doCleanup() ");
-        exitForeground();
-    }
 
     private boolean isForeground = false;
 
-    private void resumeForeground() {
+    /**
+     * Activity resuming, Hosting view attaches to window, etc.
+     */
+    public void init() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.init() ");
         isForeground = true;
         audioCapabilitiesReceiver.register();
         if (player == null) {
-            preparePlayer(true);
+            preparePlayer(!isPaused);
         } else {
             // Player audio continued. Resume video.
             player.setBackgrounded(false);
         }
     }
 
-    private void exitForeground() {
+
+    /**
+     * Activity pausing or going away, Hosting view detaching from window, etc.
+     */
+    public void cleanUp(boolean fullCleanup) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.cleanUp() ");
         isForeground = false;
         audioCapabilitiesReceiver.unregister();
-        if (!enableBackgroundAudio) {
+        if (fullCleanup || !enableBackgroundAudio) {
             releasePlayer();
         } else {
             // Pause video but continue audio

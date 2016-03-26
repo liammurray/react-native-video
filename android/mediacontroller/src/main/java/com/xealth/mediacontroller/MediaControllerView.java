@@ -30,7 +30,7 @@ import java.util.Locale;
 
 /**
  * Custom media contoller based on copy of Android MediaController class.
- * See: http://www.brightec.co.uk/ideas/custom-android-media-controller
+ * Originated with: http://www.brightec.co.uk/ideas/custom-android-media-controller
  */
 public class MediaControllerView extends LinearLayout {
     private static final String TAG = "VideoControllerView";

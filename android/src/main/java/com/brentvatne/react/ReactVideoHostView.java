@@ -1,9 +1,9 @@
 package com.brentvatne.react;
 
 import android.annotation.TargetApi;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.os.Handler;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +11,8 @@ import android.widget.FrameLayout;
 
 import com.brentvatne.react.com.brentvatne.react.exoplayer.ReactVideoExoView;
 import com.facebook.react.uimanager.ThemedReactContext;
+import com.xealth.mediacontroller.callback.Callback;
+import com.xealth.mediacontroller.callback.WeakRefCallback;
 
 /**
  * The top-level view bound to RCTVideo. It hosts the video view only while embedded.
@@ -33,8 +35,10 @@ public class ReactVideoHostView extends FrameLayout {
         super(themedReactContext);
         mOverlayView = overlayView;
 
+        // Typically Javascript will know expected aspect ration in advance and size this host view
+        // We therefore want embedded container to size to this host view.
         mVideoViewContainer = new ReactVideoViewContainer(themedReactContext, this);
-        addView(mVideoViewContainer, newFrameLayoutParamsForEmbed());
+        addView(mVideoViewContainer, newMatchParentFrameLayoutParams());
     }
 
     public void setBackground(Drawable background) {
@@ -84,20 +88,12 @@ public class ReactVideoHostView extends FrameLayout {
         mVideoViewContainer.doCleanup();
     }
 
-
-    /** Expand to fill screen */
-    private LayoutParams newFrameLayoutParamsForFullScreen() {
+    private LayoutParams newMatchParentFrameLayoutParams() {
         return new LayoutParams(
                 LayoutParams.MATCH_PARENT,
                 LayoutParams.MATCH_PARENT);
     }
 
-    /** Wrap around content */
-    private LayoutParams newFrameLayoutParamsForEmbed() {
-        return new LayoutParams(
-                LayoutParams.WRAP_CONTENT,
-                LayoutParams.WRAP_CONTENT);
-    }
 
     @TargetApi(Build.VERSION_CODES.KITKAT)
     public boolean canGoFullScreen() {
@@ -105,17 +101,42 @@ public class ReactVideoHostView extends FrameLayout {
     }
 
     private static void reParentView(ViewGroup parent, View child, LayoutParams params) {
-        child.onStartTemporaryDetach(); //TODO Necessary? Useful?
+        child.onStartTemporaryDetach();
         ViewUtil.detachFromParent(child);
-        child.destroyDrawingCache(); // Not sure necessary
         parent.addView(child, params);
         child.onFinishTemporaryDetach();
     }
 
+
+    private WeakRefCallback.DoRunnable layoutRunnable = new WeakRefCallback.DoRunnable() {
+        @Override
+        public boolean doRun() {
+            //Log.d("RCTVideo", "ReactVideoHostView: doRun(): measure and layout");
+            measure(
+                    MeasureSpec.makeMeasureSpec(getWidth(), MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(getHeight(), MeasureSpec.EXACTLY));
+            layout(getLeft(), getTop(), getRight(), getBottom());
+            return false;
+        }
+    };
+    private final Callback layoutCallback = new WeakRefCallback(new Handler(), 0, layoutRunnable);
+
+
+    @Override
+    public void requestLayout() {
+        super.requestLayout();
+        // When embedded the container resides within a ReactViewGroup.
+        // ReactViewGroup ignores/shorts-circuits requestLayout!
+        if (!mIsFullScreen && layoutCallback != null) {
+            layoutCallback.set();
+        }
+    }
+
+
     public boolean goFullScreen() {
         if (!mIsFullScreen && canGoFullScreen()) {
-            reParentView(mOverlayView, mVideoViewContainer, newFrameLayoutParamsForFullScreen());
             mIsFullScreen = true;
+            reParentView(mOverlayView, mVideoViewContainer, newMatchParentFrameLayoutParams());
             mVideoViewContainer.onFullScreenSwitch();
             return true;
         }
@@ -124,9 +145,8 @@ public class ReactVideoHostView extends FrameLayout {
 
     public boolean goEmbed() {
         if (mIsFullScreen) {
-            Log.d("RCTVideo", "ReactVideoHostView: goEmbed(): win token: " + getWindowToken());
-            reParentView(this, mVideoViewContainer, newFrameLayoutParamsForEmbed());
             mIsFullScreen = false;
+            reParentView(this, mVideoViewContainer, newMatchParentFrameLayoutParams());
             mVideoViewContainer.onFullScreenSwitch();
             return true;
         }
@@ -137,7 +157,6 @@ public class ReactVideoHostView extends FrameLayout {
         return mVideoViewContainer;
     }
 
-
     public ReactVideoExoView getVideoView() {
         return mVideoViewContainer.getVideoView();
     }
@@ -145,6 +164,18 @@ public class ReactVideoHostView extends FrameLayout {
     public boolean isFullScreen() {
         return mIsFullScreen;
     }
+
+//    @Override
+//    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+//        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.onMeasure(): " + ViewUtil.describeMeasureInfo(this, getSuggestedMinimumWidth(), getSuggestedMinimumHeight(), widthMeasureSpec, heightMeasureSpec));
+//    }
+//
+//    @Override
+//    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+//        super.onLayout(changed, left, top, right, bottom);
+//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.onLayout(): " + ViewUtil.describeSize(left, top, right, bottom));
+//    }
 
 }
 
