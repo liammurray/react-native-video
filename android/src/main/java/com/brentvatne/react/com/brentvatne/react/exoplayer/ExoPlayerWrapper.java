@@ -226,7 +226,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         this.enableRepeat = enableRepeat;
     }
 
-    public void setSeekToBeginningOnStop(boolean seekToBeginOnStop) {
+    public void setResetToBeginningOnStop(boolean seekToBeginOnStop) {
         this.seekToBeginOnStop = seekToBeginOnStop;
     }
 
@@ -647,7 +647,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
 
     private void pushSurface(boolean blockForSurfacePush) {
         if (videoRenderer == null) {
-            Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.pushSurface(): no renderer (ignore)");
+            Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.pushSurface(): no video renderer (ignore)");
             return;
         }
 

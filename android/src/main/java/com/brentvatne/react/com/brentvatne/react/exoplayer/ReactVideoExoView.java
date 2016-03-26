@@ -159,7 +159,12 @@ public class ReactVideoExoView extends FrameLayout
     }
 
 
-    public void  setSrc(String uriString, final String type, final boolean isNetwork, final boolean isAsset) {
+    public void prepareVideo(String uriString,
+                             final String type,
+                             final boolean isNetwork,
+                             final boolean isAsset) {
+        releasePlayer();
+
         srcUri = Uri.parse(uriString);
         Context context = getContext();
 
@@ -176,7 +181,7 @@ public class ReactVideoExoView extends FrameLayout
             contentUri = srcUri;
         }
 
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.setSrc(): content uri:" + contentUri);
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.prepareVideo(): content uri:" + contentUri);
 
         contentTypeExt = type;
         conentIsNetwork = isNetwork;
@@ -186,13 +191,9 @@ public class ReactVideoExoView extends FrameLayout
         contentId = "Unspecified contentId"; //TODO
         provider = "Unspecified provider"; //TODO
         configureSubtitleView();
-        //if (requiresPermission(srcUri)) {} READ_EXTERNAL_STORAGE
-        if (player == null) {
+        if (isForeground) {
             preparePlayer(true);
-        } else {
-            player.setBackgrounded(false);
         }
-
     }
 
 
@@ -226,19 +227,6 @@ public class ReactVideoExoView extends FrameLayout
 
     }
 
-    public void doInit() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doInit() ");
-        audioCapabilitiesReceiver.register();
-        //TODO no toString; do we need others?
-        setSrc(srcUri.toString(), contentTypeExt, conentIsNetwork, contentIsAsset);
-    }
-
-    public void doCleanup() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doCleanup() ");
-        audioCapabilitiesReceiver.unregister();
-        releasePlayer();
-    }
-
     private void releasePlayer() {
         progressCallback.cancel();
         if (player != null) {
@@ -251,10 +239,36 @@ public class ReactVideoExoView extends FrameLayout
         }
     }
 
-    private void releaseOrBackgroundPlayer() {
+    public void doInit() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doInit() ");
+        resumeForeground();
+    }
+
+    public void doCleanup() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.doCleanup() ");
+        exitForeground();
+    }
+
+    private boolean isForeground = false;
+
+    private void resumeForeground() {
+        isForeground = true;
+        audioCapabilitiesReceiver.register();
+        if (player == null) {
+            preparePlayer(true);
+        } else {
+            // Player audio continued. Resume video.
+            player.setBackgrounded(false);
+        }
+    }
+
+    private void exitForeground() {
+        isForeground = false;
+        audioCapabilitiesReceiver.unregister();
         if (!enableBackgroundAudio) {
             releasePlayer();
         } else {
+            // Pause video but continue audio
             player.setBackgrounded(true);
         }
     }
@@ -403,12 +417,14 @@ public class ReactVideoExoView extends FrameLayout
     public void setResizeMode(final ScalableType resizeMode) {
         this.resizeMode = resizeMode;
         textureViewManager.setScalableType(resizeMode);
-        //invalidate();
     }
 
 
     public void setRepeat(final boolean repeat) {
         enableRepeatMode = repeat;
+        if (player == null || !player.canPlay()) {
+            return;
+        }
         player.setRepeatMode(enableRepeatMode);
     }
 
@@ -491,6 +507,7 @@ public class ReactVideoExoView extends FrameLayout
         setMuted(isMuted);
         setRateModifier(playbackRate);
         seekTo(playerPosition);
+
     }
 
 
