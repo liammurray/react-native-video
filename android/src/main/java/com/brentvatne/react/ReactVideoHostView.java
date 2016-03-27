@@ -9,7 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
-import com.brentvatne.react.com.brentvatne.react.exoplayer.ReactVideoExoView;
+import com.brentvatne.react.exoplayer.ReactVideoExoView;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.xealth.mediacontroller.callback.Callback;
 import com.xealth.mediacontroller.callback.WeakRefCallback;

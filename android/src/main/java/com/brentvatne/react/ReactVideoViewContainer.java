@@ -1,7 +1,6 @@
 package com.brentvatne.react;
 
 import android.content.Context;
-import android.graphics.Color;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -10,8 +9,7 @@ import android.widget.FrameLayout;
 
 import com.brentvatne.RCTVideo.R;
 import com.brentvatne.react.ReactVideo.Events;
-import com.brentvatne.react.com.brentvatne.react.exoplayer.ExoPlayerWrapper;
-import com.brentvatne.react.com.brentvatne.react.exoplayer.ReactVideoExoView;
+import com.brentvatne.react.exoplayer.ReactVideoExoView;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
