@@ -101,6 +101,15 @@ class VideoPlayer extends Component {
     }
   }
 
+  renderMuteControl() {
+    var text = this.state.muted ? "Unmute" : "Mute";
+    return (
+      <TouchableOpacity onPress={() => { this.setState({muted: !this.state.muted}) }}>
+        <Text style={[styles.cycleControl, {fontWeight: "bold"}]}>{text}</Text>
+      </TouchableOpacity>
+    )
+  }
+
   renderCycleControl() {
     return (
       <TouchableOpacity onPress={() => { this.setState({urlIndex: (this.state.urlIndex + 1) % this.state.urls.length}) }}>
@@ -166,6 +175,9 @@ class VideoPlayer extends Component {
               {this.renderResizeModeControl('cover')}
               {this.renderResizeModeControl('contain')}
               {this.renderResizeModeControl('stretch')}
+            </View>
+            <View style={styles.resizeModeControl}>
+              {this.renderMuteControl()}
             </View>
             <View style={styles.resizeModeControl}>
               {this.renderCycleControl()}
@@ -247,19 +259,18 @@ const styles = StyleSheet.create({
   },
   rateControl: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
   },
   volumeControl: {
     flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
   },
   resizeModeControl: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: 'column',
+    justifyContent: 'flex-start',
   },
   cycleControl: {
     flex: 1,
