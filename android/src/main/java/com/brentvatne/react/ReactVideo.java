@@ -2,6 +2,8 @@ package com.brentvatne.react;
 
 
 public class ReactVideo {
+    private ReactVideo() {
+    }
     public enum Events {
         EVENT_LOAD_START("onVideoLoadStart"),
         EVENT_LOAD("onVideoLoad"),

@@ -403,8 +403,10 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onError(): " + e.getMessage());
         //TODO Show other errors?
         infoView.setState(InfoView.State.HIDDEN);
-        if (!playerControl.canPlay()) {
-            infoView.setState(InfoView.State.FAILED);
+        if (isFatal) {
+            if (!playerControl.canPlay()) {
+                infoView.setState(InfoView.State.FAILED);
+            }
             if (mController != null) {
                 mController.onStop();
             }

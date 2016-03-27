@@ -193,6 +193,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
 
     private Surface surface;
     private TrackRenderer videoRenderer;
+    private TrackRenderer audioRenderer;
     private CodecCounters codecCounters;
     private Format videoFormat;
     private int videoTrackToRestore;
@@ -205,10 +206,17 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     private InternalErrorListener internalErrorListener;
     private InfoListener infoListener;
 
+    /** Auto repeat when track playback completes */
     private boolean enableRepeat = false;
 
+    /** Auto seek to 0 when playback completes */
     private boolean seekToBeginOnStop = true;
 
+    /** Active audio track when audio enabled */
+    private int selectedAudioTrack = TRACK_DEFAULT;
+
+    /** Active text track when text enabled */
+    private int selectedTextTrack = TRACK_DEFAULT;
 
     public ExoPlayerWrapper(RendererBuilder rendererBuilder) {
         this.rendererBuilder = rendererBuilder;
@@ -317,6 +325,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         rendererBuilder.cancel();
         videoFormat = null;
         videoRenderer = null;
+        audioRenderer = null;
         rendererBuildingState = RENDERER_BUILDING_STATE_BUILDING;
         maybeReportPlayerState();
         rendererBuilder.buildRenderers(this);
@@ -330,6 +339,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
      * @param bandwidthMeter Provides an estimate of the currently available bandwidth. May be null.
      */
   /* package */ void onRenderers(TrackRenderer[] renderers, BandwidthMeter bandwidthMeter) {
+       ;
         for (int i = 0; i < RENDERER_COUNT; i++) {
             if (renderers[i] == null) {
                 // Convert a null renderer to a dummy renderer.
@@ -337,12 +347,14 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
             }
         }
         // Complete preparation.
-        this.videoRenderer = renderers[TYPE_VIDEO];
-        this.codecCounters = videoRenderer instanceof MediaCodecTrackRenderer
+        videoRenderer = renderers[TYPE_VIDEO];
+        audioRenderer = renderers[TYPE_AUDIO];
+        codecCounters = videoRenderer instanceof MediaCodecTrackRenderer
                 ? ((MediaCodecTrackRenderer) videoRenderer).codecCounters
                 : renderers[TYPE_AUDIO] instanceof MediaCodecTrackRenderer
                 ? ((MediaCodecTrackRenderer) renderers[TYPE_AUDIO]).codecCounters : null;
         this.bandwidthMeter = bandwidthMeter;
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.onRenderers(): reset surface and prepare...");
         pushSurface(false);
         player.prepare(renderers);
         rendererBuildingState = RENDERER_BUILDING_STATE_BUILT;
@@ -354,6 +366,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
      * @param e Describes the error.
      */
   /* package */ void onRenderersError(Exception e) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.onRenderersError()");
         rendererBuildingState = RENDERER_BUILDING_STATE_IDLE;
         if (internalErrorListener != null) {
             internalErrorListener.onRendererInitializationError(e);
@@ -695,7 +708,21 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
 
     /** Does a request to prepare() make sense? Do we have a valid url, etc.? */
     public boolean canPlay() {
-        return true; //TODO
+        return true; //TODO based on error we see
     }
 
+    public void setMute(boolean mute) {
+        player.setSelectedTrack(TYPE_AUDIO, mute ? TRACK_DISABLED : selectedAudioTrack);
+    }
+
+    public void enableText(boolean enable) {
+        player.setSelectedTrack(TYPE_AUDIO, enable ? TRACK_DISABLED : selectedTextTrack);
+    }
+
+    /** Sets volume 0-1 */
+    public void setVolume(float vol) {
+        if (audioRenderer != null) {
+            player.sendMessage(audioRenderer, MediaCodecAudioTrackRenderer.MSG_SET_VOLUME, vol);
+        }
+    }
 }

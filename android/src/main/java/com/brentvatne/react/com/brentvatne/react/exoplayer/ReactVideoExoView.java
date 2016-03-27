@@ -168,17 +168,17 @@ public class ReactVideoExoView extends FrameLayout
         srcUri = Uri.parse(uriString);
         Context context = getContext();
 
-        if (isAsset) {
+        if (isNetwork) {
+            contentUri = srcUri;
+        } else if (isAsset) {
             if (!FILE_SCHEME.equals(srcUri.getScheme())) {
                 contentUri = Uri.parse("asset://" + srcUri.getPath() + "." + type);
             } else {
                 contentUri = srcUri;
             }
-        } else if (!isNetwork) {
+        } else {
             // Raw resource
             contentUri = Uri.parse("android.resource://" + context.getPackageName() + "/raw/" + uriString);
-        } else {
-            contentUri = srcUri;
         }
 
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.prepareVideo(): content uri:" + contentUri);
@@ -214,6 +214,7 @@ public class ReactVideoExoView extends FrameLayout
             player.addListener(eventLogger);
             player.setInfoListener(eventLogger);
             player.setInternalErrorListener(eventLogger);
+            textureViewManager.setPersistingTexture(true);
 
         }
         if (playerNeedsPrepare) {
@@ -238,6 +239,7 @@ public class ReactVideoExoView extends FrameLayout
             player = null;
             eventLogger.endSession();
             eventLogger = null;
+            textureViewManager.setPersistingTexture(false);
         }
     }
 
@@ -267,6 +269,7 @@ public class ReactVideoExoView extends FrameLayout
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.cleanUp() ");
         isForeground = false;
         audioCapabilitiesReceiver.unregister();
+
         if (fullCleanup || !enableBackgroundAudio) {
             releasePlayer();
         } else {
@@ -440,11 +443,11 @@ public class ReactVideoExoView extends FrameLayout
 
     public void setMuted(final boolean muted) {
         isMuted = muted;
-        if (player == null || !player.canPlay()) {
-            return;
+        if (player != null) {
+            player.setMute(muted);
+            mListener.onMute(muted);
         }
-        //TODO
-        mListener.onMute(muted);
+
     }
 
 
@@ -491,7 +494,10 @@ public class ReactVideoExoView extends FrameLayout
 
     public void setVolume(final float volume) {
         this.volume = volume;
-        setMuted(isMuted);
+        if (player != null) {
+            player.setVolume(volume);
+            mListener.onVolume(volume, volume);
+        }
     }
 
     public void setRateModifier(final float rate) {

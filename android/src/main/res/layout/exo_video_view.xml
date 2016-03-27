@@ -5,7 +5,7 @@
     android:layout_height="match_parent"
     android:layout_gravity="center">
 
-    <TextureView android:id="@+id/texture_view"
+    <com.brentvatne.react.com.brentvatne.react.exoplayer.CustomTextureView android:id="@+id/texture_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_gravity="center"/>

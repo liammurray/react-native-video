@@ -22,17 +22,80 @@ public class TextureViewScaleManager implements TextureView.SurfaceTextureListen
 
     private TextureView textureView;
 
+    private CustomTextureView customTextureView;
+
     private SurfaceUser surfaceUser;
 
+    private boolean isPersisting = true;
+
+    private Surface surface;
+
+    public Surface getSurface() {
+        return surface;
+    }
 
     public interface SurfaceUser {
         void setSurface(Surface surface);
+    }
+
+    private void setPersistTexture(SurfaceTexture texture, boolean releaseOld) {
+        if (customTextureView != null) {
+            SurfaceTexture old = getPersistTexture();
+            if (customTextureView.setPersistTexture(texture)) {
+                // Changed
+                if (releaseOld && old != null) {
+                    // We manage the texture...
+                    old.release();
+                    surface = null;
+                }
+            }
+        }
+    }
+
+    private SurfaceTexture getPersistTexture() {
+        return (customTextureView != null) ? customTextureView.getPersistTexture() : null;
+    }
+
+    /**
+     * Call this to persist and re-use the surface texture initially created by the
+     * TextureView. Otherwise every time we set a new texture there is a delay while
+     * decoders re-initialize for the new texture. (This delay occurs even if we
+     * re-set the same texture after setting a null texture in between.)
+     *
+     * In final cleanup this should be called with false.
+     *
+     * @param persist
+     */
+    public void setPersistingTexture(boolean persist) {
+        if (!persist) {
+            // Release current surface if not active since we manage. Other
+            setPersistTexture(null, !surfaceActive);
+        }
+        isPersisting = persist;
+
     }
 
     public TextureViewScaleManager(TextureView textureView, SurfaceUser user) {
         this.textureView = textureView;
         this.surfaceUser = user;
         textureView.setSurfaceTextureListener(this);
+        if (textureView instanceof CustomTextureView) {
+            customTextureView = (CustomTextureView) textureView;
+            customTextureView.setOnAttachListener( new CustomTextureView.Listener() {
+                @Override
+                public void onCustomTextureViewAttached() {
+                    // Once we set the texture in onAttachedToWindow we stop getting onSurfaceTextureAvailable
+                    SurfaceTexture texture = customTextureView.getSurfaceTexture();
+                    updateTexture(texture);
+                    // Only set surface active if we got the texture via onSurfaceTextureAvailable
+                    surfaceActive = texture != null;
+                    if (surfaceUser != null) {
+                        surfaceUser.setSurface(surface);
+                    }
+                    updateMatrix(sourceWidth, sourceHeight, customTextureView.getWidth(), customTextureView.getHeight());
+                }
+            });
+        }
     }
     
     public void setSourceSize(int width, int height) {
@@ -46,34 +109,60 @@ public class TextureViewScaleManager implements TextureView.SurfaceTextureListen
         updateMatrix(sourceWidth, sourceHeight);
     }
 
-    private Surface surface;
+    private boolean surfaceActive = false;
 
-    public Surface getSurface() {
-        return surface;
-    }
-
-    @Override
-    public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
-        surface = new Surface(surfaceTexture);
-        if (surfaceUser != null) {
-            surfaceUser.setSurface(surface);
-            updateMatrix(sourceWidth, sourceHeight, width, height);
+    private void updateTexture(SurfaceTexture texture) {
+        if (isPersisting) {
+            SurfaceTexture oldTexture = getPersistTexture();
+            if (texture != oldTexture) {
+                //Log.d(ReactVideoViewManager.REACT_CLASS, "updateTexture(): new surface (texture has changed)");
+                setPersistTexture(texture, true);
+                if (texture != null) {
+                    surface = new Surface(texture);
+                } else {
+                    surface = null;
+                }
+            }
+        } else {
+            if (texture != null) {
+                surface = new Surface(texture);
+            } else {
+                surface = null;
+            }
         }
     }
+    @Override
+    public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureAvailable(): st: " + surfaceTexture);
+        surfaceActive = true;
+        updateTexture(surfaceTexture);
+        if (surfaceUser != null) {
+            surfaceUser.setSurface(surface);
+        }
+        updateMatrix(sourceWidth, sourceHeight, width, height);
+    }
 
     @Override
-    public void onSurfaceTextureSizeChanged(SurfaceTexture surface, int width, int height) {
+    public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureSizeChanged(): st: " + surfaceTexture);
         updateMatrix(sourceWidth, sourceHeight);
     }
 
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
-        this.surface = null;
-        if (surfaceUser != null) {
-            surfaceUser.setSurface(null);
-        }
-        // Always return true so texture is released
-        return true;
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureDestroyed(): st: " + surfaceTexture);
+
+        if (!isPersisting) {
+            surface = null;
+            if (surfaceUser != null) {
+                surfaceUser.setSurface(null);
+            }
+        } // else assume TextureView is being re-attached (full screen switch)
+
+        surfaceActive = false;
+
+        // Return true so texture is released in TextureView
+        return !isPersisting;
     }
 
     @Override
