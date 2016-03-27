@@ -63,6 +63,8 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
     /**
      * Call this to re-use the texture when the TextureView re-attaches to a window.
      *
+     * You should only call this with (false) when you know TextureView will detach (i.e., in final cleanup method)
+     *
      * @param persist
      */
     public void setPersistTexture(boolean persist) {
@@ -78,15 +80,24 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
         return isPersisting;
     }
 
+//    public void setNewPersistTexture() {
+//        SurfaceTexture surfaceTexture = new SurfaceTexture(0);
+//        isPersisting = true;
+//        if (isActive) {
+//            // releaseSurface(false); <-- Don't do this. TextureView will release the texture in setSurfaceTexture().
+//            persistTexture = surfaceTexture;
+//            surface = null;
+//            customTextureView.setSurfaceTexture(persistTexture);
+//            notifySurfaceIfNeeded(surfaceTexture);
+//        } else {
+//            releaseSurface();
+//            persistTexture = surfaceTexture;
+//        }
+//    }
+
     private void notifySurfaceIfNeeded(SurfaceTexture surfaceTexture) {
         if (isPersisting && surfaceTexture != persistTexture) {
-            // Probably means setPersistTexture() was called with false then true and TextureView did not detach and attach
-            // You should only call setPersistTexture(false) when you know TextureView will detach (e.g., in final cleanup method)
             Log.d(ReactVideoViewManager.REACT_CLASS, "notifySurfaceIfNeeded(): WARNING: surface texture changed while persisting; old: " + persistTexture + "; new: " + surfaceTexture);
-            // releaseSurface(false); <-- Don't do this. TextureView will release the texture in setSurfaceTexture().
-            surface = null;
-            persistTexture = surfaceTexture;
-            customTextureView.setSurfaceTexture(persistTexture);
         }
         if (surface != null) {
             // Already created Surface and did notification
