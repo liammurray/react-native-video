@@ -34,7 +34,7 @@ import java.util.List;
  */
 public class ReactVideoExoView extends FrameLayout
         implements ExoPlayerWrapper.Listener, ExoPlayerWrapper.CaptionListener, ExoPlayerWrapper.Id3MetadataListener,
-        AudioCapabilitiesReceiver.Listener/*, SurfaceHolder.Callback*/, TextureViewScaleManager.SurfaceUser {
+        AudioCapabilitiesReceiver.Listener/*, SurfaceHolder.Callback*/, TextureViewHelper.SurfaceUser {
 
     private Handler mHandler = new Handler();
 
@@ -64,7 +64,7 @@ public class ReactVideoExoView extends FrameLayout
     private EventLogger eventLogger;
 
     private TextureView textureView;
-    private TextureViewScaleManager textureViewManager;
+    private TextureViewHelper textureViewHelper;
 
     private SubtitleLayout subtitleLayout;
 
@@ -126,8 +126,8 @@ public class ReactVideoExoView extends FrameLayout
     protected void onFinishInflate() {
         super.onFinishInflate();
         textureView = (TextureView) findViewById(R.id.texture_view);
-        textureViewManager = new TextureViewScaleManager(textureView, this);
-        textureViewManager.setScalableType(resizeMode);
+        textureViewHelper = new TextureViewHelper(textureView, this);
+        textureViewHelper.setScalableType(resizeMode);
 
         subtitleLayout = (SubtitleLayout) findViewById(R.id.subtitles);
 
@@ -215,7 +215,9 @@ public class ReactVideoExoView extends FrameLayout
             player.addListener(eventLogger);
             player.setInfoListener(eventLogger);
             player.setInternalErrorListener(eventLogger);
-            textureViewManager.setPersistingTexture(true);
+            // Make sure player has persisting surface
+            player.setSurface(textureViewHelper.getSurface());
+            textureView.invalidate();
 
         }
         if (playerNeedsPrepare) {
@@ -223,8 +225,8 @@ public class ReactVideoExoView extends FrameLayout
             player.prepare();
             playerNeedsPrepare = false;
         }
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): set surface: " + textureViewManager.getSurface());
-        player.setSurface(textureViewManager.getSurface());
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): set surface: " + textureViewHelper.getSurface());
+        player.setSurface(textureViewHelper.getSurface());
         player.setPlayWhenReady(playWhenReady);
 
     }
@@ -235,13 +237,11 @@ public class ReactVideoExoView extends FrameLayout
         if (player != null) {
             Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.releasePlayer(): destroy");
             playerPosition = player.getCurrentPosition();
-            //player.setSurface(null, true);
             player.stop();
             player.release();
             player = null;
             eventLogger.endSession();
             eventLogger = null;
-            textureViewManager.setPersistingTexture(false);
         }
     }
 
@@ -255,6 +255,7 @@ public class ReactVideoExoView extends FrameLayout
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.init() ");
         isForeground = true;
         audioCapabilitiesReceiver.register();
+        textureViewHelper.setPersistTexture(true);
         if (player == null) {
             preparePlayer(!isPaused);
         } else {
@@ -271,7 +272,7 @@ public class ReactVideoExoView extends FrameLayout
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.cleanUp() ");
         isForeground = false;
         audioCapabilitiesReceiver.unregister();
-
+        textureViewHelper.setPersistTexture(false);
         if (fullCleanup || !enableBackgroundAudio) {
             releasePlayer();
         } else {
@@ -368,7 +369,7 @@ public class ReactVideoExoView extends FrameLayout
     @Override
     public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.onVideoSizeChanged()");
-        textureViewManager.setSourceSize(width, height);
+        textureViewHelper.setSourceSize(width, height);
     }
 
 
@@ -422,7 +423,7 @@ public class ReactVideoExoView extends FrameLayout
 
     public void setResizeMode(final ScalableType resizeMode) {
         this.resizeMode = resizeMode;
-        textureViewManager.setScalableType(resizeMode);
+        textureViewHelper.setScalableType(resizeMode);
     }
 
 

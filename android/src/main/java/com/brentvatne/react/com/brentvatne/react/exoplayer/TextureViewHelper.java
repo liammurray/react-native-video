@@ -13,7 +13,7 @@ import com.yqritc.scalablevideoview.ScaleManager;
 import com.yqritc.scalablevideoview.Size;
 
 
-public class TextureViewScaleManager implements TextureView.SurfaceTextureListener {
+public class TextureViewHelper implements TextureView.SurfaceTextureListener {
 
     private ScalableType mScalableType = ScalableType.NONE;
     
@@ -33,7 +33,7 @@ public class TextureViewScaleManager implements TextureView.SurfaceTextureListen
 
     private boolean isPersisting = true;
 
-    /** True while TextureView is attached */
+    /** True while TextureView is attached to window */
     private boolean isActive = false;
 
     public Surface getSurface() {
@@ -44,25 +44,29 @@ public class TextureViewScaleManager implements TextureView.SurfaceTextureListen
         void setSurface(Surface surface);
     }
 
-    private void releaseSurface() {
+    private void releaseSurface(boolean notifyUser) {
         if (persistTexture != null) {
             Log.d(ReactVideoViewManager.REACT_CLASS, "releaseSurface(): release surface texture");
             persistTexture.release();
             persistTexture = null;
-            surfaceUser.setSurface(null);
+            if (notifyUser) {
+                surfaceUser.setSurface(null);
+            }
         }
         surface = null;
     }
 
-
+    private void releaseSurface() {
+        releaseSurface(true);
+    }
 
     /**
      * Call this to re-use the texture when the TextureView re-attaches to a window.
      *
      * @param persist
      */
-    public void setPersistingTexture(boolean persist) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "setPersistingTexture(): persist: " + persist);
+    public void setPersistTexture(boolean persist) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "setPersistTexture(): persist: " + persist);
         if (!persist && !isActive) {
             // We can release now. Otherwise wait for onSurfaceTextureDestroyed() (when window detaches).
             releaseSurface();
@@ -70,9 +74,19 @@ public class TextureViewScaleManager implements TextureView.SurfaceTextureListen
         isPersisting = persist;
     }
 
+    public boolean isPersisting() {
+        return isPersisting;
+    }
+
     private void notifySurfaceIfNeeded(SurfaceTexture surfaceTexture) {
         if (isPersisting && surfaceTexture != persistTexture) {
-            throw new AssertionError("surface texture changed while persisting");
+            // Probably means setPersistTexture() was called with false then true and TextureView did not detach and attach
+            // You should only call setPersistTexture(false) when you know TextureView will detach (e.g., in final cleanup method)
+            Log.d(ReactVideoViewManager.REACT_CLASS, "notifySurfaceIfNeeded(): WARNING: surface texture changed while persisting; old: " + persistTexture + "; new: " + surfaceTexture);
+            // releaseSurface(false); <-- Don't do this. TextureView will release the texture in setSurfaceTexture().
+            surface = null;
+            persistTexture = surfaceTexture;
+            customTextureView.setSurfaceTexture(persistTexture);
         }
         if (surface != null) {
             // Already created Surface and did notification
@@ -84,7 +98,7 @@ public class TextureViewScaleManager implements TextureView.SurfaceTextureListen
         updateMatrix(sourceWidth, sourceHeight, customTextureView.getWidth(), customTextureView.getHeight());
     }
 
-    public TextureViewScaleManager(TextureView textureView, SurfaceUser user) {
+    public TextureViewHelper(TextureView textureView, SurfaceUser user) {
         this.textureView = textureView;
         this.surfaceUser = user;
         textureView.setSurfaceTextureListener(this);
