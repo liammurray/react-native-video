@@ -95,4 +95,8 @@ public class ViewUtil {
     public static String describeSize(int left, int top, int right, int bottom) {
         return "(" + left + "," + top + "," + right + "," + bottom + ")";
     }
+
+    public static String describeSize(View view) {
+        return "(" + view.getLeft() + "," + view.getTop() + "," + view.getRight() + "," + view.getBottom() + ")";
+    }
 }

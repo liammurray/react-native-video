@@ -44,6 +44,9 @@ public class InfoView extends FrameLayout {
     }
 
     public void setState(State state) {
+        setState(state, null);
+    }
+    public void setState(State state, String errorMessage) {
         if (this.state == state) {
             return;
         }
@@ -62,7 +65,11 @@ public class InfoView extends FrameLayout {
             case FAILED:
                 progress.setVisibility(View.GONE);
                 text.setVisibility(View.VISIBLE);
-                text.setText(R.string.video_unavailable);
+                if (errorMessage != null) {
+                    text.setText(errorMessage);
+                } else {
+                    text.setText(R.string.video_error);
+                }
                 setVisibility(View.VISIBLE);
                 break;
         }

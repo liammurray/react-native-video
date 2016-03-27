@@ -273,7 +273,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     }
 
     public void setSurface(Surface surface, boolean block) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.setSurface(): " + surface);
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.setSurface(): " + surface + "; old: " + this.surface);
         if (this.surface != surface) {
             this.surface = surface;
             pushSurface(block);
@@ -354,7 +354,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
                 : renderers[TYPE_AUDIO] instanceof MediaCodecTrackRenderer
                 ? ((MediaCodecTrackRenderer) renderers[TYPE_AUDIO]).codecCounters : null;
         this.bandwidthMeter = bandwidthMeter;
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.onRenderers(): reset surface and prepare...");
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.onRenderers(): push current surface.");
         pushSurface(false);
         player.prepare(renderers);
         rendererBuildingState = RENDERER_BUILDING_STATE_BUILT;
@@ -682,6 +682,14 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
        return (ExoPlayer.STATE_PREPARING == state ||
                ExoPlayer.STATE_BUFFERING == state ||
                ExoPlayer.STATE_READY == state);
+    }
+
+    public boolean isStopped() {
+        return !isActiveState(player.getPlaybackState());
+    }
+
+    public boolean isIdle() {
+        return ExoPlayer.STATE_IDLE == player.getPlaybackState();
     }
 
     /** Is playing from ui standpoint, i.e., may be waiting to load or buffer, but still in playback state */

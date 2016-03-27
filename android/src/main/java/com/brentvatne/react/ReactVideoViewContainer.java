@@ -169,20 +169,19 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
-
-        // Ignore toggle logic while player is in bad state
-        if (ev.getAction() == MotionEvent.ACTION_DOWN && playerControl.canPlay()) {
+        if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent(): DOWN");
             // First finger down
             if (mController != null) {
-                if (mVideoView.isPlaying()) {
-                    // While playing tapping on video toggles controller.
+                if (mVideoView.isPlaying() || !playerControl.canPlay()) {
+                    // While playing (or in non-playable state) tapping on video toggles controller.
                     toggleController();
                 } else {
-                    // While stopped or paused tapping resumes or starts playback. Listener will show controller.
+                    // While stopped or paused tapping resumes or starts playback.
                     playerControl.start();
+                    showController();
                 }
-            } else {
+            } else if (playerControl.canPlay()) {
                 // No controller. Tap is play pause.
                 togglePlayPause();
             }
@@ -404,9 +403,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         //TODO Show other errors?
         infoView.setState(InfoView.State.HIDDEN);
         if (isFatal) {
-            if (!playerControl.canPlay()) {
-                infoView.setState(InfoView.State.FAILED);
-            }
+            infoView.setState(InfoView.State.FAILED, e.getMessage());
             if (mController != null) {
                 mController.onStop();
             }

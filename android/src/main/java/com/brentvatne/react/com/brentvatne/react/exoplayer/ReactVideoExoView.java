@@ -201,6 +201,7 @@ public class ReactVideoExoView extends FrameLayout
     /** Fetch URI metadata, and start playing if playWhenReady is true */
     private void preparePlayer(boolean playWhenReady) {
         if (player == null) {
+            Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): create");
             // Renderer handle obtaining data for a given URI
             player = new ExoPlayerWrapper(getRendererBuilder());
             player.addListener(this);
@@ -232,6 +233,7 @@ public class ReactVideoExoView extends FrameLayout
         progressCallback.cancel();
         bufferingCallback.cancel();
         if (player != null) {
+            Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.releasePlayer(): destroy");
             playerPosition = player.getCurrentPosition();
             //player.setSurface(null, true);
             player.stop();
@@ -300,11 +302,10 @@ public class ReactVideoExoView extends FrameLayout
                     bufferingCallback.set();
                     break;
                 case ExoPlayer.STATE_ENDED:
+                case ExoPlayer.STATE_IDLE: // Idle may occur if we never make it to READY: I->P->B->(decode error)->I
                     // Always play from beginning even though internally player may stop and maintain pos at end
                     playerPosition = 0;
                     mListener.onStop();
-                    break;
-                case ExoPlayer.STATE_IDLE:
                     break;
                 case ExoPlayer.STATE_PREPARING:
                     preparePending = true;
@@ -439,6 +440,9 @@ public class ReactVideoExoView extends FrameLayout
             return;
         }
         player.setPlayWhenReady(!isPaused);
+        if (player.isIdle()) {
+            player.prepare();
+        }
     }
 
     public void setMuted(final boolean muted) {
