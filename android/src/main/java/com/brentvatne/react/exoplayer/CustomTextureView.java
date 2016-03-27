@@ -1,13 +1,8 @@
-package com.brentvatne.react.com.brentvatne.react.exoplayer;
+package com.brentvatne.react.exoplayer;
 
 import android.content.Context;
-import android.graphics.SurfaceTexture;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.TextureView;
-import android.view.ViewGroup;
-
-import com.brentvatne.react.ReactVideoViewManager;
 
 
 public class CustomTextureView extends TextureView {

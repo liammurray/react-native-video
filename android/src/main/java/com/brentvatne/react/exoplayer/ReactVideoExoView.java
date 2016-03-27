@@ -1,4 +1,4 @@
-package com.brentvatne.react.com.brentvatne.react.exoplayer;
+package com.brentvatne.react.exoplayer;
 
 import android.content.Context;
 import android.net.Uri;

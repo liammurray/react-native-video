@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.brentvatne.react.com.brentvatne.react.exoplayer;
+package com.brentvatne.react.exoplayer;
 
 import android.media.MediaCodec.CryptoException;
 import android.os.Handler;

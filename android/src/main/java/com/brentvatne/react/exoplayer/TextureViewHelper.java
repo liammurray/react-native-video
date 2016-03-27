@@ -1,4 +1,4 @@
-package com.brentvatne.react.com.brentvatne.react.exoplayer;
+package com.brentvatne.react.exoplayer;
 
 import android.graphics.Matrix;
 import android.graphics.SurfaceTexture;

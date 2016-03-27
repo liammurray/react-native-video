@@ -1,4 +1,4 @@
-package com.brentvatne.react.com.brentvatne.react.exoplayer;
+package com.brentvatne.react.exoplayer;
 
 import android.Manifest;
 import android.annotation.TargetApi;
@@ -7,7 +7,6 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
 import android.view.accessibility.CaptioningManager;
 
 import com.google.android.exoplayer.MediaFormat;
