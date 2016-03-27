@@ -200,10 +200,12 @@ public class ReactVideoExoView extends FrameLayout
 
     /** Fetch URI metadata, and start playing if playWhenReady is true */
     private void preparePlayer(boolean playWhenReady) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): current surface: " + textureViewHelper.getSurface());
         if (player == null) {
             Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): create");
             // Renderer handle obtaining data for a given URI
             player = new ExoPlayerWrapper(getRendererBuilder());
+            player.setSurface(textureViewHelper.getSurface());
             player.addListener(this);
             player.setCaptionListener(this);
             player.setMetadataListener(this);
@@ -215,20 +217,15 @@ public class ReactVideoExoView extends FrameLayout
             player.addListener(eventLogger);
             player.setInfoListener(eventLogger);
             player.setInternalErrorListener(eventLogger);
-            // Make sure player has persisting surface
+        } else {
             player.setSurface(textureViewHelper.getSurface());
-            textureView.invalidate();
-
         }
         if (playerNeedsPrepare) {
             // Attempt to build renderers. Auto plays bases on how setPlayWhenReady() was called...
             player.prepare();
             playerNeedsPrepare = false;
         }
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): set surface: " + textureViewHelper.getSurface());
-        player.setSurface(textureViewHelper.getSurface());
         player.setPlayWhenReady(playWhenReady);
-
     }
 
     private void releasePlayer() {
