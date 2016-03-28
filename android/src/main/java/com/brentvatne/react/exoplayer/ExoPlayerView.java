@@ -212,7 +212,7 @@ public class ExoPlayerView extends FrameLayout
             setPaused(model.isPaused());
             setMuted(model.isMuted());
             setVolume(model.getVolume());
-            setRateModifier(model.getPlaybackRate());
+            setPlaybackRate(model.getPlaybackRate());
             seekTo(model.getPos());
         }
         playerNeedsPrepare = true;
@@ -509,8 +509,8 @@ public class ExoPlayerView extends FrameLayout
         }
     }
 
-    public void setRateModifier(final float rate) {
-        Log.e(LOGTAG, "setRateModifier(): not implemented");
+    public void setPlaybackRate(final float rate) {
+        Log.e(LOGTAG, "setPlaybackRate(): not implemented");
     }
 
 

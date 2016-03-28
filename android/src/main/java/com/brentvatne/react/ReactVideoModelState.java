@@ -1,15 +1,10 @@
 package com.brentvatne.react;
 
 
-import android.net.Uri;
 import android.util.Log;
 
-import com.brentvatne.react.exoplayer.ExoPlayerView;
 import com.facebook.react.bridge.ReadableMap;
-import com.facebook.react.uimanager.annotations.ReactProp;
 import com.yqritc.scalablevideoview.ScalableType;
-
-import javax.annotation.Nullable;
 
 /**
  * Encapsulates state set from JS
@@ -108,7 +103,7 @@ public class ReactVideoModelState {
     public void setRate(final float rate) {
         Log.d(LOGTAG, "setRate(): " + rate);
         playbackRate = rate;
-        hostView.getVideoView().setRateModifier(rate);
+        hostView.getVideoView().setPlaybackRate(rate);
     }
 
     public void setEnableControls(final boolean enableControls) {
