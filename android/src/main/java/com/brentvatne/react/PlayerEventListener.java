@@ -1,5 +1,8 @@
 package com.brentvatne.react;
 
+/**
+ * Events from actual video view (e.g., ExoPlayerView or MediaPlayerView implements)
+ */
 public interface PlayerEventListener {
     void onLoad(String uriString, String type, boolean isNetwork);
     void onLoadComplete(long currentPosition, long mVideoDuration);

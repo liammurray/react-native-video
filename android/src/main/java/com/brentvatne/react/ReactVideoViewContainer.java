@@ -8,37 +8,36 @@ import android.view.View;
 import android.widget.FrameLayout;
 
 import com.brentvatne.RCTVideo.R;
-import com.brentvatne.react.ReactVideo.Events;
-import com.brentvatne.react.exoplayer.ReactVideoExoView;
+import com.brentvatne.react.exoplayer.ExoPlayerView;
 import com.facebook.react.bridge.Arguments;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.xealth.mediacontroller.MediaControllerView;
 
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_CURRENT_TIME;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_DURATION;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_ERROR;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_EXTRA;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_FAST_FORWARD;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_PLAYABLE_DURATION;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_REVERSE;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_SEEK_TIME;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_SLOW_FORWARD;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_SLOW_REVERSE;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_STEP_BACKWARD;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_STEP_FORWARD;
-import static com.brentvatne.react.ReactVideo.EVENT_PROP_WHAT;
-
 /**
- * Frame that parents video view and media transport controller (player controls)
+ * Frame that parents the actual video view and media transport controller (player controls).
  */
 public class ReactVideoViewContainer extends FrameLayout implements View.OnSystemUiVisibilityChangeListener,
         PlayerEventListener, MediaControllerView.VisibilityListener {
 
+    public static final String EVENT_PROP_FAST_FORWARD = "canPlayFastForward";
+    public static final String EVENT_PROP_SLOW_FORWARD = "canPlaySlowForward";
+    public static final String EVENT_PROP_SLOW_REVERSE = "canPlaySlowReverse";
+    public static final String EVENT_PROP_REVERSE = "canPlayReverse";
+    public static final String EVENT_PROP_STEP_FORWARD = "canStepForward";
+    public static final String EVENT_PROP_STEP_BACKWARD = "canStepBackward";
+    public static final String EVENT_PROP_DURATION = "duration";
+    public static final String EVENT_PROP_PLAYABLE_DURATION = "playableDuration";
+    public static final String EVENT_PROP_CURRENT_TIME = "currentTime";
+    public static final String EVENT_PROP_SEEK_TIME = "seekTime";
+    public static final String EVENT_PROP_ERROR = "error";
+    public static final String EVENT_PROP_WHAT = "what";
+    public static final String EVENT_PROP_EXTRA = "extra";
+
     private ReactVideoHostView mHostView;
 
-    private ReactVideoExoView mVideoView;
+    private ExoPlayerView mVideoView;
 
     private MediaControllerView mController;
 
@@ -61,7 +60,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
-        mVideoView = (ReactVideoExoView)inflater.inflate(R.layout.exo_video_view, this, false);
+        mVideoView = (ExoPlayerView)inflater.inflate(R.layout.exo_video_view, this, false);
         playerControl = createPlayerControl();
         mVideoView.setEventListener(this);
         addView(mVideoView, newFrameLayoutParams());
@@ -361,7 +360,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public void onStop() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onStop()");
-        mEventEmitter.receiveEvent(getHostViewId(), ReactVideo.Events.EVENT_END.toString(), null);
+        mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_END.toString(), null);
         if (mController != null) {
             mController.onStop();
         }
@@ -470,10 +469,31 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         }
     }
 
-    public ReactVideoExoView getVideoView() {
+    public ExoPlayerView getVideoView() {
         return mVideoView;
     }
 
+    public enum Events {
+        EVENT_LOAD_START("onVideoLoadStart"),
+        EVENT_LOAD("onVideoLoad"),
+        EVENT_ENTER_FS("onVideoEnterFullScreen"),
+        EVENT_EXIT_FS("onVideoExitFullScreen"),
+        EVENT_ERROR("onVideoError"),
+        EVENT_PROGRESS("onVideoProgress"),
+        EVENT_SEEK("onVideoSeek"),
+        EVENT_END("onVideoEnd");
+
+        private final String mName;
+
+        Events(final String name) {
+            mName = name;
+        }
+
+        @Override
+        public String toString() {
+            return mName;
+        }
+    }
 }
 
 

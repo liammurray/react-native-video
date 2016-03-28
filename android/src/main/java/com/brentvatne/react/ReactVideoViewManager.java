@@ -1,6 +1,6 @@
 package com.brentvatne.react;
 
-import com.brentvatne.react.ReactVideo.Events;
+import com.brentvatne.react.ReactVideoViewContainer.Events;
 import com.facebook.react.bridge.ReadableMap;
 import com.facebook.react.common.MapBuilder;
 import com.facebook.react.uimanager.SimpleViewManager;
@@ -47,7 +47,7 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoHostView>
     @Nullable
     public Map getExportedCustomDirectEventTypeConstants() {
         MapBuilder.Builder builder = MapBuilder.builder();
-        for (Events event : Events.values()) {
+        for (Events event : ReactVideoViewContainer.Events.values()) {
             builder.put(event.toString(), MapBuilder.of("registrationName", event.toString()));
         }
         return builder.build();

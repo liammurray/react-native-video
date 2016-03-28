@@ -15,10 +15,6 @@ import com.brentvatne.RCTVideo.R;
 /**
  * This is a view that is dynamically inserted into the DecorView frame so that
  * it displays on top of the prior sibling view(s).
- *
- * DecorView is the top level view hierarchy FrameLayout for activity and dialog
- * windows.
- *
  */
 public final class OverlayView extends FrameLayout {
 
@@ -29,9 +25,6 @@ public final class OverlayView extends FrameLayout {
         this(context, attrs, android.R.id.content);
     }
 
-    /**
-     * @param parentViewGroupId id of parent view group that we add this view to
-     */
     public OverlayView(final Context context, final AttributeSet attrs, int parentViewGroupId) {
         super(context, attrs);
         this.parentViewGroupId = parentViewGroupId;
@@ -50,8 +43,7 @@ public final class OverlayView extends FrameLayout {
 
     /**
      * Ensures overlay is added to view hierarchy associated with given view.
-     * Given view must already be added to decor view hierarchy and attached to window.
-     * A good time to call this is in onAttachedToWindow().
+     * The view must already be added to decor view hierarchy and attached to window.
      */
     public void attach(View view) {
         if (view.getWindowToken() != null) {

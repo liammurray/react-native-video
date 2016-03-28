@@ -23,9 +23,9 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * From ExoPlayer
+ * Various helpers, many from ExoPlayer demo project
  */
-public class MediaUtil {
+public class ExoPlayerUtil {
     public static String buildTrackName(MediaFormat format) {
         if (format.adaptive) {
             return "auto";

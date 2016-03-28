@@ -32,7 +32,7 @@ import java.util.List;
 /**
  * View that renders ExoPlayer video
  */
-public class ReactVideoExoView extends FrameLayout
+public class ExoPlayerView extends FrameLayout
         implements ExoPlayerWrapper.Listener, ExoPlayerWrapper.CaptionListener, ExoPlayerWrapper.Id3MetadataListener,
         AudioCapabilitiesReceiver.Listener/*, SurfaceHolder.Callback*/, TextureViewHelper.SurfaceUser {
 
@@ -110,11 +110,11 @@ public class ReactVideoExoView extends FrameLayout
 
     private AudioCapabilitiesReceiver audioCapabilitiesReceiver;
 
-    public ReactVideoExoView(Context context) {
+    public ExoPlayerView(Context context) {
         super(context);
     }
 
-    public ReactVideoExoView(Context context, AttributeSet attrs) {
+    public ExoPlayerView(Context context, AttributeSet attrs) {
         super(context, attrs);
     }
 
@@ -187,7 +187,7 @@ public class ReactVideoExoView extends FrameLayout
         conentIsNetwork = isNetwork;
         contentIsAsset = isAsset;
         // This type is used to determine mp4, hls, dash, etc. and therefore type of renderer
-        contentType = MediaUtil.inferContentType(srcUri, type);
+        contentType = ExoPlayerUtil.inferContentType(srcUri, type);
         contentId = "Unspecified contentId"; //TODO
         provider = "Unspecified provider"; //TODO
         configureSubtitleView();
@@ -405,8 +405,8 @@ public class ReactVideoExoView extends FrameLayout
         CaptionStyleCompat style;
         float fontScale;
         if (Util.SDK_INT >= 19) {
-            style = MediaUtil.getUserCaptionStyleV19(getContext());
-            fontScale = MediaUtil.getUserCaptionFontScaleV19(getContext());
+            style = ExoPlayerUtil.getUserCaptionStyleV19(getContext());
+            fontScale = ExoPlayerUtil.getUserCaptionFontScaleV19(getContext());
         } else {
             style = CaptionStyleCompat.DEFAULT;
             fontScale = 1.0f;

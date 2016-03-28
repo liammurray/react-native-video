@@ -9,7 +9,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
-import com.brentvatne.react.exoplayer.ReactVideoExoView;
+import com.brentvatne.react.exoplayer.ExoPlayerView;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.xealth.mediacontroller.callback.Callback;
 import com.xealth.mediacontroller.callback.WeakRefCallback;
@@ -111,7 +111,6 @@ public class ReactVideoHostView extends FrameLayout {
     private WeakRefCallback.DoRunnable layoutRunnable = new WeakRefCallback.DoRunnable() {
         @Override
         public boolean doRun() {
-            //Log.d("RCTVideo", "ReactVideoHostView: doRun(): measure and layout");
             measure(
                     MeasureSpec.makeMeasureSpec(getWidth(), MeasureSpec.EXACTLY),
                     MeasureSpec.makeMeasureSpec(getHeight(), MeasureSpec.EXACTLY));
@@ -157,7 +156,7 @@ public class ReactVideoHostView extends FrameLayout {
         return mVideoViewContainer;
     }
 
-    public ReactVideoExoView getVideoView() {
+    public ExoPlayerView getVideoView() {
         return mVideoViewContainer.getVideoView();
     }
 
