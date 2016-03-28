@@ -40,7 +40,6 @@ public class MainActivity extends ReactActivity {
    */
     @Override
     protected List<ReactPackage> getPackages() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "MainActivity.getPackages() ");
         return Arrays.<ReactPackage>asList(
                 new MainReactPackage(), new AndroidUtilPackage(), new OrientationPackage(this),
                 new ReactVideoPackage());

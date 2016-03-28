@@ -21,6 +21,8 @@ import com.xealth.mediacontroller.MediaControllerView;
 public class ReactVideoViewContainer extends FrameLayout implements View.OnSystemUiVisibilityChangeListener,
         PlayerEventListener, MediaControllerView.VisibilityListener {
 
+    private static final String LOGTAG = ReactVideoViewContainer.class.getSimpleName();
+
     public static final String EVENT_PROP_FAST_FORWARD = "canPlayFastForward";
     public static final String EVENT_PROP_SLOW_FORWARD = "canPlaySlowForward";
     public static final String EVENT_PROP_SLOW_REVERSE = "canPlaySlowReverse";
@@ -102,7 +104,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     /** Enables or disables controller */
     public void setEnableControllerView(final boolean enableControllerView) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setEnableControllerView(): " + enableControllerView);
         this.enableControllerView = enableControllerView;
         if (this.enableControllerView) {
             ensureController();
@@ -121,7 +122,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onSystemUiVisibilityChange(int visibility) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onSystemUiVisibilityChange(): " + visibility);
+        //Log.d(LOGTAG, "onSystemUiVisibilityChange(): " + visibility);
         int diff = lastSystemUiVis ^ visibility;
         lastSystemUiVis = visibility;
         if (autoHideNav) {
@@ -135,14 +136,14 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onControllerVisibilityChanged(boolean attached) {
-        //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onControllerVisibilityChanged(): autohide nav:" + autoHideNav);
+        //Log.d(LOGTAG, "onControllerVisibilityChanged(): autohide nav:" + autoHideNav);
         if (autoHideNav) {
             setNavVisibility(attached);
         }
     }
 
     private void setNavVisibility(boolean visible) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setNavVisibility(): " + visible);
+        //Log.d(LOGTAG, "setNavVisibility(): " + visible);
         /**
          * SYSTEM_UI_FLAG_LAYOUT_XXX: size content area to include area behind system bars (bars overlap)
          * SYSTEM_UI_FLAG_LOW_PROFILE: dims status and nav bar
@@ -170,7 +171,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public boolean onTouchEvent(MotionEvent ev) {
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
-            Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent(): DOWN");
+            //Log.d(LOGTAG, "onTouchEvent(): DOWN");
             // First finger down
             if (controller != null) {
                 if (videoView.isPlaying() || !playerControl.canPlay()) {
@@ -300,7 +301,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      * Called when host view attaches (but not when this window attaches during fs switch)
      */
     public void doInit() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doInit()");
+        Log.d(LOGTAG, "doInit()");
         videoView.init();
         setEnableControllerView(enableControllerView);
     }
@@ -309,7 +310,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      * Called when host view detaches (but not when this window detaches during fs switch)
      */
     public void doCleanup() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doCleanup()");
+        Log.d(LOGTAG, "doCleanup()");
         videoView.cleanUp(true);
         if (controller != null) {
             // Since we disable callbacks we can't rely on stop callbacks
@@ -326,13 +327,11 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      */
     private void showController() {
         boolean persist = !playerControl.isPlaying();
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.showController(): persist: " + persist);
         controller.show(persist);
     }
 
 
     private void setMediaControllerVisibility(boolean setVisible) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setMediaControllerVisibility()");
         if (controller.isShowing()) {
             if (!setVisible) {
                 controller.hide();
@@ -354,7 +353,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onPause() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onPause()");
         if (controller != null) {
             controller.onPause();
         }
@@ -362,7 +360,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onStop() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onStop()");
         eventEmitter.receiveEvent(getHostViewId(), Events.EVENT_END.toString(), null);
         if (controller != null) {
             controller.onStop();
@@ -379,7 +376,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onBuffer(int percent, long duration) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onBuffer(): " + percent);
         infoView.setState(InfoView.State.HIDDEN);
         WritableMap event = Arguments.createMap();
         event.putDouble(EVENT_PROP_PLAYABLE_DURATION, playerControl.getBufferDuration() / 1000.0);
@@ -399,7 +395,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onError(Exception e, boolean isFatal) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onError(): " + e.getMessage());
         //TODO Show other errors?
         infoView.setState(InfoView.State.HIDDEN);
         if (isFatal) {
@@ -428,7 +423,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onLoad(String uriString, String type, boolean isNetwork) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onLoad()");
         if (controller != null) {
             controller.onLoad();
         }
@@ -444,7 +438,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onLoadComplete(long currentPosition, long videoDuration) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onLoadComplete()");
         infoView.setState(InfoView.State.HIDDEN);
         WritableMap event = Arguments.createMap();
         event.putDouble(EVENT_PROP_DURATION, videoDuration / 1000.0);
@@ -465,7 +458,6 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onPlay() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onPlay()");
         infoView.setState(InfoView.State.HIDDEN);
         if (controller != null) {
             controller.onPlay();

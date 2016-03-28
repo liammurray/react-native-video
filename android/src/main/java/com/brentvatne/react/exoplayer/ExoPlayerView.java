@@ -9,9 +9,9 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.widget.FrameLayout;
 
+import com.brentvatne.RCTVideo.BuildConfig;
 import com.brentvatne.RCTVideo.R;
 import com.brentvatne.react.PlayerEventListener;
-import com.brentvatne.react.ReactVideoViewManager;
 import com.google.android.exoplayer.ExoPlayer;
 import com.google.android.exoplayer.audio.AudioCapabilities;
 import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver;
@@ -36,6 +36,7 @@ public class ExoPlayerView extends FrameLayout
         implements ExoPlayerWrapper.Listener, ExoPlayerWrapper.CaptionListener, ExoPlayerWrapper.Id3MetadataListener,
         AudioCapabilitiesReceiver.Listener/*, SurfaceHolder.Callback*/, TextureViewHelper.SurfaceUser {
 
+    private static final String LOGTAG = ExoPlayerWrapper.class.getSimpleName();
     private Handler mHandler = new Handler();
 
     /** State that can be set prior to SRC */
@@ -60,8 +61,10 @@ public class ExoPlayerView extends FrameLayout
         defaultCookieManager.setCookiePolicy(CookiePolicy.ACCEPT_ORIGINAL_SERVER);
     }
 
-    /** Logs video events for debugging (from exoplayer demo) */
+    /** Logs video events for debugging (extremely useful, from exoplayer demo) */
     private EventLogger eventLogger;
+
+    private static final boolean eventLoggerEnabled = BuildConfig.DEBUG;
 
     private TextureView textureView;
     private TextureViewHelper textureViewHelper;
@@ -141,7 +144,7 @@ public class ExoPlayerView extends FrameLayout
 
 
     private ExoPlayerWrapper.RendererBuilder getRendererBuilder() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.getRendererBuilder(): creating builder for: " + contentUri);
+        Log.d(LOGTAG, "getRendererBuilder(): creating builder for: " + contentUri);
         switch (contentType) {
 //            case Util.TYPE_SS:
 //                return new SmoothStreamingRendererBuilder(this, userAgent, contentUri.toString(),
@@ -181,7 +184,7 @@ public class ExoPlayerView extends FrameLayout
             contentUri = Uri.parse("android.resource://" + context.getPackageName() + "/raw/" + uriString);
         }
 
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.prepareVideo(): content uri:" + contentUri);
+        Log.d(LOGTAG, "prepareVideo(): content uri: " + contentUri);
 
         contentTypeExt = type;
         conentIsNetwork = isNetwork;
@@ -200,9 +203,8 @@ public class ExoPlayerView extends FrameLayout
 
     /** Fetch URI metadata, and start playing if playWhenReady is true */
     private void preparePlayer(boolean playWhenReady) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): current surface: " + textureViewHelper.getSurface());
         if (player == null) {
-            Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.preparePlayer(): create");
+            Log.d(LOGTAG, "preparePlayer(): create");
             // Renderer handle obtaining data for a given URI
             player = new ExoPlayerWrapper(getRendererBuilder());
             player.setSurface(textureViewHelper.getSurface());
@@ -211,12 +213,13 @@ public class ExoPlayerView extends FrameLayout
             player.setMetadataListener(this);
             applySavedState();
             playerNeedsPrepare = true;
-            //TODO add optional flag for this logging
-            eventLogger = new EventLogger();
-            eventLogger.startSession();
-            player.addListener(eventLogger);
-            player.setInfoListener(eventLogger);
-            player.setInternalErrorListener(eventLogger);
+            if (eventLoggerEnabled) {
+                eventLogger = new EventLogger();
+                eventLogger.startSession();
+                player.addListener(eventLogger);
+                player.setInfoListener(eventLogger);
+                player.setInternalErrorListener(eventLogger);
+            }
         } else {
             player.setSurface(textureViewHelper.getSurface());
         }
@@ -232,13 +235,15 @@ public class ExoPlayerView extends FrameLayout
         progressCallback.cancel();
         bufferingCallback.cancel();
         if (player != null) {
-            Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.releasePlayer(): destroy");
+            Log.d(LOGTAG, "releasePlayer(): destroy");
             playerPosition = player.getCurrentPosition();
             player.stop();
             player.release();
             player = null;
-            eventLogger.endSession();
-            eventLogger = null;
+            if (eventLogger != null) {
+                eventLogger.endSession();
+                eventLogger = null;
+            }
         }
     }
 
@@ -249,10 +254,10 @@ public class ExoPlayerView extends FrameLayout
      * Activity resuming, Hosting view attaches to window, etc.
      */
     public void init() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.init() ");
+        Log.d(LOGTAG, "init() ");
         isForeground = true;
         audioCapabilitiesReceiver.register();
-        textureViewHelper.setPersistTexture(true);
+        textureViewHelper.enablePersistTexture(true);
         if (player == null) {
             preparePlayer(!isPaused);
         } else {
@@ -266,10 +271,10 @@ public class ExoPlayerView extends FrameLayout
      * Activity pausing or going away, Hosting view detaching from window, etc.
      */
     public void cleanUp(boolean fullCleanup) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.cleanUp() ");
+        Log.d(LOGTAG, "cleanUp(): full: " + fullCleanup);
         isForeground = false;
         audioCapabilitiesReceiver.unregister();
-        textureViewHelper.setPersistTexture(false);
+        textureViewHelper.enablePersistTexture(false);
         if (fullCleanup || !enableBackgroundAudio) {
             releasePlayer();
         } else {
@@ -352,20 +357,19 @@ public class ExoPlayerView extends FrameLayout
 
     @Override
     public void onId3Metadata(List<Id3Frame> id3Frames) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onId3Metadata()");
     }
 
     @Override
     public void onError(Exception e) {
         //ExoPlaybackException, UnsupportedDrmException
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onError(): " + e);
+        Log.d(LOGTAG, "onError(): " + e);
         playerNeedsPrepare = true;
         mListener.onError(e, true);
     }
 
     @Override
     public void onVideoSizeChanged(int width, int height, int unappliedRotationDegrees, float pixelWidthHeightRatio) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.onVideoSizeChanged()");
+        Log.d(LOGTAG, "onVideoSizeChanged(): " + width + "," + height);
         textureViewHelper.setSourceSize(width, height);
     }
 
@@ -390,7 +394,7 @@ public class ExoPlayerView extends FrameLayout
 
     @Override
     public void setSurface(Surface surface) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoView.setSurface(): surface: " + surface);
+        //Log.d(LOGTAG, "setSurface(): surface: " + surface);
         if (player != null) {
             if (surface != null) {
                 player.setSurface(surface);

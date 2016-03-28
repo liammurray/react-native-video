@@ -33,7 +33,7 @@ import java.util.Locale;
  * Originated with: http://www.brightec.co.uk/ideas/custom-android-media-controller
  */
 public class MediaControllerView extends LinearLayout {
-    private static final String TAG = "VideoControllerView";
+    private static final String LOGTAG = MediaControllerView.class.getSimpleName();
 
     private MediaPlayerControl mPlayer;
     private Context mContext;
@@ -196,25 +196,52 @@ public class MediaControllerView extends LinearLayout {
 
     static final int FADE_ANIM_DURATION = 250;
 
-    private static void hideView(final View view) {
-        ObjectAnimator anim = ObjectAnimator.ofFloat(view, "alpha", 0);
-        anim.setDuration(FADE_ANIM_DURATION);
-        anim.addListener(new
-                                 AnimatorListenerAdapter() {
-                                     public void onAnimationEnd(Animator animation) {
-                                         view.setAlpha(1);
-                                         view.setVisibility(View.INVISIBLE);
-                                     }
-                                 }
+    private ObjectAnimator hideAnim = ObjectAnimator.ofFloat(this, "alpha", 0).setDuration(FADE_ANIM_DURATION);
+    private ObjectAnimator showAnim = ObjectAnimator.ofFloat(this, "alpha", 0f, 1f).setDuration(FADE_ANIM_DURATION);
+    {
+        hideAnim.addListener(
+                new AnimatorListenerAdapter() {
+                    public void onAnimationEnd(Animator animation) {
+                        setAlpha(1);
+                        setVisibility(View.INVISIBLE);
+                    }
+                }
         );
-        anim.start();
     }
 
-    private static void showView(View view) {
-        ObjectAnimator anim = ObjectAnimator.ofFloat(view, "alpha", 0f, 1f);
-        anim.setDuration(FADE_ANIM_DURATION);
-        anim.start();
-        view.setVisibility(View.VISIBLE);
+
+    private void showView(boolean setVisible) {
+        showView(setVisible, true);
+    }
+
+    private void showView(boolean setVisible, boolean withAnim) {
+        if (setVisible) {
+            if (hideAnim.isRunning()) {
+                // TODO Perhaps reverse for nicer effect
+                hideAnim.cancel();
+            }
+            if (withAnim) {
+                if (!showAnim.isRunning()) {
+                    showAnim.start();
+                }
+            } else {
+                showAnim.cancel();
+            }
+            setVisibility(View.VISIBLE);
+        } else {
+            if (showAnim.isRunning()) {
+                showAnim.cancel();
+            }
+            if (withAnim) {
+                if (!hideAnim.isRunning()) {
+                    // Wait for animation completion to set invisible
+                    hideAnim.start();
+                }
+            } else {
+                hideAnim.cancel();
+                setVisibility(View.INVISIBLE);
+            }
+        }
     }
 
 
@@ -223,9 +250,8 @@ public class MediaControllerView extends LinearLayout {
      * automatically after 'timeout' milliseconds of inactivity.
      */
     public void show(boolean persist) {
-        //Log.d("RCTVideo", "MediaControllerView: show: " + timeout);
         if (!mShowing) {
-            showView(this);
+            showView(true);
             mShowing = true;
             setProgress();
             if (mPlayPauseButton != null) {
@@ -294,7 +320,7 @@ public class MediaControllerView extends LinearLayout {
      */
     public void hide() {
         if (mShowing) {
-            hideView(this);
+            showView(false);
             progressCallback.cancel();
             hideCallback.cancel();
             mShowing = false;
@@ -328,18 +354,13 @@ public class MediaControllerView extends LinearLayout {
         if (mPlayer == null || mDragging) {
             return 0;
         }
-        long position = 0;
-        long duration = 0;
-        if (mPlayer.canPlay()) {
-            position = mPlayer.getCurrentPosition();
-            duration = mPlayer.getDuration();
-        }
+        long position = mPlayer.getCurrentPosition();
+        long duration = mPlayer.getDuration();
         if (mProgress != null) {
             long pos = (duration > 0) ? 1000L * position / duration : 0;
             mProgress.setProgress((int) pos);
-            int percent = mPlayer.getBufferPercentage();
-            long bufferDuration = (percent * (long) duration) / 100;
-            mProgress.setSecondaryProgress((int) bufferDuration);
+            long bufferedPosition = mPlayer.getBufferDuration();
+            mProgress.setSecondaryProgress((int) bufferedPosition);
         }
 
         setTextTime(mCurrentTime, position);
@@ -350,7 +371,6 @@ public class MediaControllerView extends LinearLayout {
 
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        Log.d("RCTVideo", "MediaControllerView::onTouchEvent()");
         hideCallback.extend();
         return true;
     }
@@ -418,7 +438,6 @@ public class MediaControllerView extends LinearLayout {
             // don't show the controls for volume adjustment
             return super.dispatchKeyEvent(event);
         } else if (keyCode == KeyEvent.KEYCODE_BACK || keyCode == KeyEvent.KEYCODE_MENU) {
-            Log.d("RCTVideo", "MediaControllerView::dispatchKeyEvent()");
             if (uniqueDown) {
                 hide();
             }

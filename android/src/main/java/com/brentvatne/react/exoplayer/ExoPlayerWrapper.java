@@ -21,7 +21,6 @@ import android.os.Looper;
 import android.util.Log;
 import android.view.Surface;
 
-import com.brentvatne.react.ReactVideoViewManager;
 import com.google.android.exoplayer.CodecCounters;
 import com.google.android.exoplayer.DummyTrackRenderer;
 import com.google.android.exoplayer.ExoPlaybackException;
@@ -61,6 +60,8 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         StreamingDrmSessionManager.EventListener, DashChunkSource.EventListener, TextRenderer,
         MetadataRenderer<List<Id3Frame>>, DebugTextViewHelper.Provider {
 
+    private static final String LOGTAG = ExoPlayerWrapper.class.getSimpleName();
+    
     /**
      * Builds renderers for the player.
      */
@@ -273,8 +274,8 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     }
 
     public void setSurface(Surface surface, boolean block) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.setSurface(): " + surface + "; old: " + this.surface);
         if (this.surface != surface) {
+            Log.d(LOGTAG, "setSurface(): " + surface + "; old: " + this.surface);
             this.surface = surface;
             pushSurface(block);
         }
@@ -307,7 +308,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         if (this.backgrounded == backgrounded) {
             return;
         }
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.setBackgrounded(): " + backgrounded);
+        Log.d(LOGTAG, "setBackgrounded(): " + backgrounded);
         this.backgrounded = backgrounded;
         if (backgrounded) {
             videoTrackToRestore = getSelectedTrack(TYPE_VIDEO);
@@ -354,7 +355,8 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
                 : renderers[TYPE_AUDIO] instanceof MediaCodecTrackRenderer
                 ? ((MediaCodecTrackRenderer) renderers[TYPE_AUDIO]).codecCounters : null;
         this.bandwidthMeter = bandwidthMeter;
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.onRenderers(): push current surface.");
+        Log.d(LOGTAG, "onRenderers(): preparing...");
+        // Set surface and load content. Once loaded we begin paused or playing (ready state) based on playWhenReady.
         pushSurface(false);
         player.prepare(renderers);
         rendererBuildingState = RENDERER_BUILDING_STATE_BUILT;
@@ -366,7 +368,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
      * @param e Describes the error.
      */
   /* package */ void onRenderersError(Exception e) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.onRenderersError()");
+        Log.d(LOGTAG, "onRenderersError()");
         rendererBuildingState = RENDERER_BUILDING_STATE_IDLE;
         if (internalErrorListener != null) {
             internalErrorListener.onRendererInitializationError(e);
@@ -399,7 +401,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     }
 
     public void release() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.release()");
+        Log.d(LOGTAG, "release()");
         rendererBuilder.cancel();
         rendererBuildingState = RENDERER_BUILDING_STATE_IDLE;
         surface = null;
@@ -450,9 +452,7 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     }
 
     public long getBufferedDuration() {
-        int percent = player.getBufferedPercentage();
-        long dur = player.getDuration();
-        return (percent * dur / 100);
+        return player.getBufferedPosition();
     }
 
     public boolean getPlayWhenReady() {
@@ -476,8 +476,8 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
         }
     }
 
+    /** Handles repeat and auto seek to begin logic when playback completes */
     private void resetOnStop() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.resetOnStop()");
         setPlayWhenReady(enableRepeat);
         if (seekToBeginOnStop || enableRepeat) {
             seekTo(0);
@@ -663,12 +663,11 @@ public class ExoPlayerWrapper implements ExoPlayer.Listener, ChunkSampleSource.E
     }
 
     private void pushSurface(boolean blockForSurfacePush) {
+        Log.d(LOGTAG, "pushSurface(): block: " + blockForSurfacePush + "; surf: " + surface);
         if (videoRenderer == null) {
-            Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.pushSurface(): no video renderer (ignore)");
+            Log.d(LOGTAG, "pushSurface(): ignore (no video renderer)");
             return;
         }
-
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ExoPlayerWrapper.pushSurface(): surface: " + surface);
         if (blockForSurfacePush) {
             player.blockingSendMessage(
                     videoRenderer, MediaCodecVideoTrackRenderer.MSG_SET_SURFACE, surface);

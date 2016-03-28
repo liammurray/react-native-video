@@ -2,8 +2,6 @@ package com.brentvatne.react;
 
 import android.content.Context;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -52,21 +50,6 @@ public final class OverlayView extends FrameLayout {
             throw new IllegalStateException("Target view has no window");
         }
     }
-
-
-    @Override
-    protected void onAttachedToWindow() {
-        super.onAttachedToWindow();
-        Log.d(ReactVideoViewManager.REACT_CLASS, "OverlayView.onAttachedToWindow() ");
-    }
-
-    @Override
-    protected void onDetachedFromWindow() {
-        super.onDetachedFromWindow();
-        Log.d(ReactVideoViewManager.REACT_CLASS, "OverlayView.onDetachedFromWindow() ");
-    }
-
-
 
     /**
      * Removes overlay from content frame and disassociates with target view. 

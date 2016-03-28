@@ -14,13 +14,16 @@ import com.yqritc.scalablevideoview.ScaleManager;
 import com.yqritc.scalablevideoview.Size;
 
 /**
- * Manages persisting SurfaceTexture used by TextureView. This makes video playback
- * during fullscreen mode switch (during which time view is reattached within view
- * hierarchy) proceed without a break in continuity.
+ * Manages persisting SurfaceTexture used by TextureView when it detaches
+ * and reattaches to its parent view. Normally the surface is re-created when
+ * this happens. This makes video playback during fullscreen mode switch
+ * proceed without a break in continuity.
  *
  * Also manages scale matrix set on TextureView.
  */
 public class TextureViewHelper implements TextureView.SurfaceTextureListener {
+
+    private static final String LOGTAG = TextureViewHelper.class.getSimpleName();
 
     private ScalableType mScalableType = ScalableType.NONE;
 
@@ -51,7 +54,7 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
 
     private void releaseSurface(boolean notifyUser) {
         if (persistTexture != null) {
-            Log.d(ReactVideoViewManager.REACT_CLASS, "releaseSurface(): release surface texture");
+            Log.d(LOGTAG, "releaseSurface(): release surface texture");
             persistTexture.release();
             persistTexture = null;
             if (notifyUser) {
@@ -72,8 +75,8 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
      *
      * @param persist
      */
-    public void setPersistTexture(boolean persist) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "setPersistTexture(): persist: " + persist);
+    public void enablePersistTexture(boolean persist) {
+        Log.d(LOGTAG, "enablePersistTexture(): enable: " + persist);
         if (!persist && !isActive) {
             // We can release now. Otherwise wait for onSurfaceTextureDestroyed() (when window detaches).
             releaseSurface();
@@ -103,13 +106,13 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
 
     private void notifySurfaceIfNeeded(SurfaceTexture surfaceTexture) {
         if (isPersisting && surfaceTexture != persistTexture) {
-            Log.d(ReactVideoViewManager.REACT_CLASS, "notifySurfaceIfNeeded(): WARNING: surface texture changed while persisting; old: " + persistTexture + "; new: " + surfaceTexture);
+            Log.d(LOGTAG, "notifySurfaceIfNeeded(): WARNING: surface texture changed while persisting; old: " + persistTexture + "; new: " + surfaceTexture);
         }
         if (surface != null) {
             // Already created Surface and did notification
             return;
         }
-        Log.d(ReactVideoViewManager.REACT_CLASS, "notifySurfaceIfNeeded(): notify surface(): " + ViewUtil.describeSize(textureView));
+        Log.d(LOGTAG, "notifySurfaceIfNeeded(): notify surface(): " + ViewUtil.describeSize(textureView));
         surface = new Surface(surfaceTexture);
         surfaceUser.setSurface(surface);
         updateMatrix(sourceWidth, sourceHeight, textureView.getWidth(), textureView.getHeight());
@@ -120,7 +123,7 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
      * Once we do this we won't receive a callback to onSurfaceTextureAvailable(). We do get other callbacks.
      */
     private void onTextureViewAttached() {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onTextureViewAttached(): surface: " + surface);
+        Log.d(LOGTAG, "onTextureViewAttached(): surface: " + surface);
         if (persistTexture != null) {
             if (!isPersisting) {
                 throw new AssertionError("bad state");
@@ -161,7 +164,7 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
 
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surfaceTexture, int width, int height) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureAvailable(): st: " + surfaceTexture);
+        Log.d(LOGTAG, "onSurfaceTextureAvailable(): st: " + surfaceTexture);
         // We do not receive this callback if we set the texture when the window is attached
         if (persistTexture != null || surface != null) {
             throw new AssertionError("bad state");
@@ -180,13 +183,13 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
 
     @Override
     public void onSurfaceTextureSizeChanged(SurfaceTexture surfaceTexture, int width, int height) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureSizeChanged(): st: " + surfaceTexture);
+        Log.d(LOGTAG, "onSurfaceTextureSizeChanged(): st: " + surfaceTexture);
         updateMatrix(sourceWidth, sourceHeight);
     }
 
     @Override
     public boolean onSurfaceTextureDestroyed(SurfaceTexture surfaceTexture) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "onSurfaceTextureDestroyed(): st: " + surfaceTexture);
+        Log.d(LOGTAG, "onSurfaceTextureDestroyed(): st: " + surfaceTexture);
         isActive = false;
         if (!isPersisting) {
             // We stopped persisting while active. Now cleanup.
@@ -215,7 +218,4 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
         textureView.setTransform(matrix);
         textureView.invalidate();
     }
-
-
-    
 }

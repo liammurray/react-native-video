@@ -23,6 +23,8 @@ import com.xealth.mediacontroller.callback.WeakRefCallback;
  */
 public class ReactVideoHostView extends FrameLayout {
 
+    private static final String LOGTAG = ReactVideoHostView.class.getSimpleName();
+
     private ReactVideoViewContainer videoViewContainer;
 
     private OverlayView overlayView;
@@ -57,11 +59,8 @@ public class ReactVideoHostView extends FrameLayout {
         if (overlayView == null) {
             overlayView = OverlayView.getOverlay(this);
             if (overlayView == null) {
-                Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.ensureOverlayView() creating overlay");
                 overlayView = new OverlayView(getContext(), null);
                 overlayView.attach(this);
-            } else {
-                Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.ensureOverlayView() found overlay");
             }
         }
     }
@@ -70,7 +69,7 @@ public class ReactVideoHostView extends FrameLayout {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.onAttachedToWindow() ");
+        Log.d(LOGTAG, "onAttachedToWindow() ");
         if (enableAutoOverlay) {
             ensureOverlayView();
         }
@@ -80,7 +79,7 @@ public class ReactVideoHostView extends FrameLayout {
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
-        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.onDetachedFromWindow() ");
+        Log.d(LOGTAG, "onDetachedFromWindow() ");
         if (isFullScreen) {
             // May have issues doing it here since ViewGroup may be iterating over heirarchy
             goEmbed();
@@ -167,13 +166,13 @@ public class ReactVideoHostView extends FrameLayout {
 //    @Override
 //    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
 //        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.onMeasure(): " + ViewUtil.describeMeasureInfo(this, getSuggestedMinimumWidth(), getSuggestedMinimumHeight(), widthMeasureSpec, heightMeasureSpec));
+//        Log.d(LOGTAG, "onMeasure(): " + ViewUtil.describeMeasureInfo(this, getSuggestedMinimumWidth(), getSuggestedMinimumHeight(), widthMeasureSpec, heightMeasureSpec));
 //    }
 //
 //    @Override
 //    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
 //        super.onLayout(changed, left, top, right, bottom);
-//        Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.onLayout(): " + ViewUtil.describeSize(left, top, right, bottom));
+//        Log.d(LOGTAG, "onLayout(): " + ViewUtil.describeSize(left, top, right, bottom));
 //    }
 
 }
