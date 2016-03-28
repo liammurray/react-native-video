@@ -5,6 +5,7 @@ import android.graphics.SurfaceTexture;
 import android.util.Log;
 import android.view.Surface;
 import android.view.TextureView;
+import android.view.View;
 
 import com.brentvatne.react.ReactVideoViewManager;
 import com.brentvatne.react.ViewUtil;
@@ -12,18 +13,22 @@ import com.yqritc.scalablevideoview.ScalableType;
 import com.yqritc.scalablevideoview.ScaleManager;
 import com.yqritc.scalablevideoview.Size;
 
-
+/**
+ * Manages persisting SurfaceTexture used by TextureView. This makes video playback
+ * during fullscreen mode switch (during which time view is reattached within view
+ * hierarchy) proceed without a break in continuity.
+ *
+ * Also manages scale matrix set on TextureView.
+ */
 public class TextureViewHelper implements TextureView.SurfaceTextureListener {
 
     private ScalableType mScalableType = ScalableType.NONE;
-    
+
     private int sourceWidth;
     
     private int sourceHeight;
 
     private final TextureView textureView;
-
-    private final CustomTextureView customTextureView;
 
     private final SurfaceUser surfaceUser;
 
@@ -80,6 +85,7 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
         return isPersisting;
     }
 
+    //TODO Make this work so we can force new texture on new video playback (old surface flashes old content)
 //    public void setNewPersistTexture() {
 //        SurfaceTexture surfaceTexture = new SurfaceTexture(0);
 //        isPersisting = true;
@@ -103,33 +109,43 @@ public class TextureViewHelper implements TextureView.SurfaceTextureListener {
             // Already created Surface and did notification
             return;
         }
-        Log.d(ReactVideoViewManager.REACT_CLASS, "notifySurfaceIfNeeded(): notify surface(): " + ViewUtil.describeSize(customTextureView));
+        Log.d(ReactVideoViewManager.REACT_CLASS, "notifySurfaceIfNeeded(): notify surface(): " + ViewUtil.describeSize(textureView));
         surface = new Surface(surfaceTexture);
         surfaceUser.setSurface(surface);
-        updateMatrix(sourceWidth, sourceHeight, customTextureView.getWidth(), customTextureView.getHeight());
+        updateMatrix(sourceWidth, sourceHeight, textureView.getWidth(), textureView.getHeight());
+    }
+
+    /**
+     * Set custom persistTexture persists across attach/detach) every time TextureView attaches to a window.
+     * Once we do this we won't receive a callback to onSurfaceTextureAvailable(). We do get other callbacks.
+     */
+    private void onTextureViewAttached() {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "onTextureViewAttached(): surface: " + surface);
+        if (persistTexture != null) {
+            if (!isPersisting) {
+                throw new AssertionError("bad state");
+            }
+            textureView.setSurfaceTexture(persistTexture);
+            isActive = true;
+        }
     }
 
     public TextureViewHelper(TextureView textureView, SurfaceUser user) {
         this.textureView = textureView;
         this.surfaceUser = user;
         textureView.setSurfaceTextureListener(this);
-        customTextureView = (textureView instanceof CustomTextureView) ? (CustomTextureView) textureView : null;
-        if (customTextureView != null) {
-            // Set custom persistTexture persists across attach/detach) every time TextureView attaches to a window
-            customTextureView.setOnAttachListener( new CustomTextureView.Listener() {
-                @Override
-                public void onCustomTextureViewAttached() {
-                    Log.d(ReactVideoViewManager.REACT_CLASS, "onCustomTextureViewAttached(): surface: " + surface);
-                    if (persistTexture != null) {
-                        if (!isPersisting) {
-                            throw new AssertionError("bad state");
-                        }
-                        customTextureView.setSurfaceTexture(persistTexture);
-                        isActive = true;
-                    }
-                }
-            });
-        }
+        textureView.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+                onTextureViewAttached();
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+
+            }
+        });
+
     }
     
     public void setSourceSize(int width, int height) {

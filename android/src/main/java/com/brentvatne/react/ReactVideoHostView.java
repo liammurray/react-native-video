@@ -23,28 +23,28 @@ import com.xealth.mediacontroller.callback.WeakRefCallback;
  */
 public class ReactVideoHostView extends FrameLayout {
 
-    private ReactVideoViewContainer mVideoViewContainer;
+    private ReactVideoViewContainer videoViewContainer;
 
-    private OverlayView mOverlayView;
+    private OverlayView overlayView;
 
-    private boolean mIsFullScreen = false;
+    private boolean isFullScreen = false;
 
     private static final boolean enableAutoOverlay = true;
 
     public ReactVideoHostView(ThemedReactContext themedReactContext, OverlayView overlayView) {
         super(themedReactContext);
-        mOverlayView = overlayView;
+        this.overlayView = overlayView;
 
         // Typically Javascript will know expected aspect ration in advance and size this host view
         // We therefore want embedded container to size to this host view.
-        mVideoViewContainer = new ReactVideoViewContainer(themedReactContext, this);
-        addView(mVideoViewContainer, newMatchParentFrameLayoutParams());
+        videoViewContainer = new ReactVideoViewContainer(themedReactContext, this);
+        addView(videoViewContainer, newMatchParentFrameLayoutParams());
     }
 
     public void setBackground(Drawable background) {
         super.setBackground(background);
         // Set background in view container so it inherits when re-attached in fullscreen (TODO probably need better solution)
-        mVideoViewContainer.setBackground(background);
+        videoViewContainer.setBackground(background);
     }
 
 
@@ -54,12 +54,12 @@ public class ReactVideoHostView extends FrameLayout {
     }
 
     private void ensureOverlayView() {
-        if (mOverlayView == null) {
-            mOverlayView = OverlayView.getOverlay(this);
-            if (mOverlayView == null) {
+        if (overlayView == null) {
+            overlayView = OverlayView.getOverlay(this);
+            if (overlayView == null) {
                 Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.ensureOverlayView() creating overlay");
-                mOverlayView = new OverlayView(getContext(), null);
-                mOverlayView.attach(this);
+                overlayView = new OverlayView(getContext(), null);
+                overlayView.attach(this);
             } else {
                 Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.ensureOverlayView() found overlay");
             }
@@ -74,18 +74,18 @@ public class ReactVideoHostView extends FrameLayout {
         if (enableAutoOverlay) {
             ensureOverlayView();
         }
-        mVideoViewContainer.doInit();
+        videoViewContainer.doInit();
     }
 
     @Override
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         Log.d(ReactVideoViewManager.REACT_CLASS, "ReactVideoHostView.onDetachedFromWindow() ");
-        if (mIsFullScreen) {
+        if (isFullScreen) {
             // May have issues doing it here since ViewGroup may be iterating over heirarchy
             goEmbed();
         }
-        mVideoViewContainer.doCleanup();
+        videoViewContainer.doCleanup();
     }
 
     private LayoutParams newMatchParentFrameLayoutParams() {
@@ -97,7 +97,7 @@ public class ReactVideoHostView extends FrameLayout {
 
     @TargetApi(Build.VERSION_CODES.KITKAT)
     public boolean canGoFullScreen() {
-        return mOverlayView != null && mOverlayView.isAttachedToWindow();
+        return overlayView != null && overlayView.isAttachedToWindow();
     }
 
     private static void reParentView(ViewGroup parent, View child, LayoutParams params) {
@@ -126,42 +126,42 @@ public class ReactVideoHostView extends FrameLayout {
         super.requestLayout();
         // When embedded the container resides within a ReactViewGroup.
         // ReactViewGroup ignores/shorts-circuits requestLayout!
-        if (!mIsFullScreen && layoutCallback != null) {
+        if (!isFullScreen && layoutCallback != null) {
             layoutCallback.set();
         }
     }
 
 
     public boolean goFullScreen() {
-        if (!mIsFullScreen && canGoFullScreen()) {
-            mIsFullScreen = true;
-            reParentView(mOverlayView, mVideoViewContainer, newMatchParentFrameLayoutParams());
-            mVideoViewContainer.onFullScreenSwitch();
+        if (!isFullScreen && canGoFullScreen()) {
+            isFullScreen = true;
+            reParentView(overlayView, videoViewContainer, newMatchParentFrameLayoutParams());
+            videoViewContainer.onFullScreenSwitch();
             return true;
         }
         return false;
     }
 
     public boolean goEmbed() {
-        if (mIsFullScreen) {
-            mIsFullScreen = false;
-            reParentView(this, mVideoViewContainer, newMatchParentFrameLayoutParams());
-            mVideoViewContainer.onFullScreenSwitch();
+        if (isFullScreen) {
+            isFullScreen = false;
+            reParentView(this, videoViewContainer, newMatchParentFrameLayoutParams());
+            videoViewContainer.onFullScreenSwitch();
             return true;
         }
         return false;
     }
 
     public ReactVideoViewContainer getContainerView() {
-        return mVideoViewContainer;
+        return videoViewContainer;
     }
 
     public ExoPlayerView getVideoView() {
-        return mVideoViewContainer.getVideoView();
+        return videoViewContainer.getVideoView();
     }
 
     public boolean isFullScreen() {
-        return mIsFullScreen;
+        return isFullScreen;
     }
 
 //    @Override

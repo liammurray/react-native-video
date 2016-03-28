@@ -35,42 +35,45 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     public static final String EVENT_PROP_WHAT = "what";
     public static final String EVENT_PROP_EXTRA = "extra";
 
-    private ReactVideoHostView mHostView;
+    /** Parent view in embedded mode */
+    private ReactVideoHostView hostView;
 
-    private ExoPlayerView mVideoView;
+    /** Actual video view */
+    private ExoPlayerView videoView;
 
-    private MediaControllerView mController;
+    /** Player transport controls */
+    private MediaControllerView controller;
 
-    private boolean mShowControls = true;
-
-    private boolean mAutoHideNav = true;
-
-    private int mLastSystemUiVis;
-
-    private RCTEventEmitter mEventEmitter;
-
+    /** View that covers player view while loading or presenting error state message */
     private InfoView infoView;
+
+    private boolean enableControllerView = true;
+
+    /** Auto hide navigation bar when controller view goes away? */
+    private boolean autoHideNav = true;
+
+    private int lastSystemUiVis;
+
+    private RCTEventEmitter eventEmitter;
 
     private MediaControllerView.MediaPlayerControl playerControl = createPlayerControl();
 
-
     public ReactVideoViewContainer(ThemedReactContext context, ReactVideoHostView hostView) {
         super(context);
-        mHostView = hostView;
+        this.hostView = hostView;
 
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
-        mVideoView = (ExoPlayerView)inflater.inflate(R.layout.exo_video_view, this, false);
+        videoView = (ExoPlayerView)inflater.inflate(R.layout.exo_video_view, this, false);
         playerControl = createPlayerControl();
-        mVideoView.setEventListener(this);
-        addView(mVideoView, newFrameLayoutParams());
+        videoView.setEventListener(this);
+        addView(videoView, newFrameLayoutParams());
 
         infoView = (InfoView)inflater.inflate(R.layout.info_view, this, false);
         addView(infoView);
         infoView.setState(InfoView.State.HIDDEN);
 
-        //setBackground(Color.BLACK);
-        mEventEmitter = context.getJSModule(RCTEventEmitter.class);
+        eventEmitter = context.getJSModule(RCTEventEmitter.class);
         setOnSystemUiVisibilityChangeListener(this);
     }
 
@@ -81,47 +84,47 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     }
 
     public void setAutoHideNav(final boolean autoHideNav) {
-        mAutoHideNav = autoHideNav;
+        this.autoHideNav = autoHideNav;
     }
 
     private void ensureController() {
-        if (mController != null) {
+        if (controller != null) {
             return;
         }
         LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
         // Inflate creating correct version of layout params based on layout
-        mController = (MediaControllerView)inflater.inflate(R.layout.media_controller, this, false);
-        mController.setAnchorView(this);
+        controller = (MediaControllerView)inflater.inflate(R.layout.media_controller, this, false);
+        controller.setAnchorView(this);
 
     }
 
 
 
     /** Enables or disables controller */
-    public void setShowControls(final boolean showControls) {
-        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setShowControls(): " + showControls);
-        mShowControls = showControls;
-        if (mShowControls) {
+    public void setEnableControllerView(final boolean enableControllerView) {
+        Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setEnableControllerView(): " + enableControllerView);
+        this.enableControllerView = enableControllerView;
+        if (this.enableControllerView) {
             ensureController();
-            if (!mController.isShowing()) {
+            if (!controller.isShowing()) {
                 showController();
             }
-            mController.setAnchorView(this);
+            controller.setAnchorView(this);
 
-            mController.setMediaPlayer(playerControl);
-            mController.setVisibilityListener(this);
-        } else if (mController != null) {
-            mController.hide();
-            mController = null;
+            controller.setMediaPlayer(playerControl);
+            controller.setVisibilityListener(this);
+        } else if (controller != null) {
+            controller.hide();
+            controller = null;
         }
     }
 
     @Override
     public void onSystemUiVisibilityChange(int visibility) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onSystemUiVisibilityChange(): " + visibility);
-        int diff = mLastSystemUiVis ^ visibility;
-        mLastSystemUiVis = visibility;
-        if (mAutoHideNav) {
+        int diff = lastSystemUiVis ^ visibility;
+        lastSystemUiVis = visibility;
+        if (autoHideNav) {
             // If SYSTEM_UI_FLAG_HIDE_NAVIGATION removed from visibility flags...
             if ((diff & SYSTEM_UI_FLAG_HIDE_NAVIGATION) != 0
                     && (visibility & SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0) {
@@ -132,8 +135,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     @Override
     public void onControllerVisibilityChanged(boolean attached) {
-        //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onControllerVisibilityChanged(): autohide nav:" + mAutoHideNav);
-        if (mAutoHideNav) {
+        //Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onControllerVisibilityChanged(): autohide nav:" + autoHideNav);
+        if (autoHideNav) {
             setNavVisibility(attached);
         }
     }
@@ -158,7 +161,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
             newVis |= SYSTEM_UI_FLAG_FULLSCREEN | SYSTEM_UI_FLAG_HIDE_NAVIGATION;
         }
         setSystemUiVisibility(newVis);
-        if (mController != null) {
+        if (controller != null) {
             // In case where we set nav visibility outside of listener that observes media controller visibility changes
             setMediaControllerVisibility(visible);
         }
@@ -169,8 +172,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         if (ev.getAction() == MotionEvent.ACTION_DOWN) {
             Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onTouchEvent(): DOWN");
             // First finger down
-            if (mController != null) {
-                if (mVideoView.isPlaying() || !playerControl.canPlay()) {
+            if (controller != null) {
+                if (videoView.isPlaying() || !playerControl.canPlay()) {
                     // While playing (or in non-playable state) tapping on video toggles controller.
                     toggleController();
                 } else {
@@ -187,7 +190,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     }
 
     private void togglePlayPause() {
-        if (mVideoView.isPlaying()) {
+        if (videoView.isPlaying()) {
             playerControl.pause();
         } else {
             playerControl.start();
@@ -196,8 +199,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     /** Shows or hides controller */
     private void toggleController() {
-        if (mController.isShowing()) {
-            mController.hide();
+        if (controller.isShowing()) {
+            controller.hide();
         } else {
             showController();
         }
@@ -209,47 +212,47 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
             @Override
             public void start() {
-                mVideoView.setPaused(false);
+                videoView.setPaused(false);
             }
 
             @Override
             public void pause() {
-                mVideoView.setPaused(true);
+                videoView.setPaused(true);
             }
 
             @Override
             public long getDuration() {
-                return mVideoView.getDuration();
+                return videoView.getDuration();
             }
 
             @Override
             public long getCurrentPosition() {
-                return mVideoView.getCurrentPosition();
+                return videoView.getCurrentPosition();
             }
 
             @Override
             public void seekTo(long pos) {
-                mVideoView.seekTo(pos);
+                videoView.seekTo(pos);
             }
 
             @Override
             public boolean isPlaying() {
-                return mVideoView.isPlaying();
+                return videoView.isPlaying();
             }
 
             @Override
             public int getBufferPercentage() {
-                return mVideoView.getBufferedPercentage();
+                return videoView.getBufferedPercentage();
             }
 
             @Override
             public long getBufferDuration() {
-                return mVideoView.getBufferedDuration();
+                return videoView.getBufferedDuration();
             }
 
             @Override
             public boolean canPlay() {
-                return mVideoView.canPlay();
+                return videoView.canPlay();
             }
 
             @Override
@@ -264,12 +267,12 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
             @Override
             public boolean canGoFullScreen() {
-                return mHostView.canGoFullScreen();
+                return hostView.canGoFullScreen();
             }
 
             @Override
             public boolean isFullScreen() {
-                return mHostView.isFullScreen();
+                return hostView.isFullScreen();
             }
 
             @Override
@@ -282,14 +285,14 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
 
     /** Id for React view */
     private int getHostViewId() {
-        return mHostView.getId();
+        return hostView.getId();
     }
 
     public void doFullScreenToggle() {
-        if (mHostView.isFullScreen()) {
-            mHostView.goEmbed();
+        if (hostView.isFullScreen()) {
+            hostView.goEmbed();
         } else {
-            mHostView.goFullScreen();
+            hostView.goFullScreen();
         }
     }
 
@@ -298,8 +301,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      */
     public void doInit() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doInit()");
-        mVideoView.init();
-        setShowControls(mShowControls);
+        videoView.init();
+        setEnableControllerView(enableControllerView);
     }
 
     /**
@@ -307,14 +310,14 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
      */
     public void doCleanup() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.doCleanup()");
-        mVideoView.cleanUp(true);
-        if (mController != null) {
+        videoView.cleanUp(true);
+        if (controller != null) {
             // Since we disable callbacks we can't rely on stop callbacks
-            mController.onStop();
-            mController.hide();
+            controller.onStop();
+            controller.hide();
             // Disable callbacks until next init
-            mController.setMediaPlayer(null);
-            mController.setVisibilityListener(null);
+            controller.setMediaPlayer(null);
+            controller.setVisibilityListener(null);
         }
     }
 
@@ -324,15 +327,15 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     private void showController() {
         boolean persist = !playerControl.isPlaying();
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.showController(): persist: " + persist);
-        mController.show(persist);
+        controller.show(persist);
     }
 
 
     private void setMediaControllerVisibility(boolean setVisible) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.setMediaControllerVisibility()");
-        if (mController.isShowing()) {
+        if (controller.isShowing()) {
             if (!setVisible) {
-                mController.hide();
+                controller.hide();
             }
         } else {
             if (setVisible) {
@@ -342,27 +345,27 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     }
 
     public void onFullScreenSwitch() {
-        if (mController != null) {
-            mController.onFullScreenSwitch();
+        if (controller != null) {
+            controller.onFullScreenSwitch();
         }
         Events event = playerControl.isFullScreen() ? Events.EVENT_ENTER_FS : Events.EVENT_EXIT_FS;
-        mEventEmitter.receiveEvent(getHostViewId(), event.toString(), null);
+        eventEmitter.receiveEvent(getHostViewId(), event.toString(), null);
     }
 
     @Override
     public void onPause() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onPause()");
-        if (mController != null) {
-            mController.onPause();
+        if (controller != null) {
+            controller.onPause();
         }
     }
 
     @Override
     public void onStop() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onStop()");
-        mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_END.toString(), null);
-        if (mController != null) {
-            mController.onStop();
+        eventEmitter.receiveEvent(getHostViewId(), Events.EVENT_END.toString(), null);
+        if (controller != null) {
+            controller.onStop();
         }
     }
 
@@ -371,7 +374,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         WritableMap event = Arguments.createMap();
         event.putDouble(EVENT_PROP_CURRENT_TIME, currentPos / 1000.0);
         event.putDouble(EVENT_PROP_PLAYABLE_DURATION, playerControl.getBufferDuration() / 1000.0);
-        mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_PROGRESS.toString(), event);
+        eventEmitter.receiveEvent(getHostViewId(), Events.EVENT_PROGRESS.toString(), event);
     }
 
     @Override
@@ -380,7 +383,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         infoView.setState(InfoView.State.HIDDEN);
         WritableMap event = Arguments.createMap();
         event.putDouble(EVENT_PROP_PLAYABLE_DURATION, playerControl.getBufferDuration() / 1000.0);
-        mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_PROGRESS.toString(), event);
+        eventEmitter.receiveEvent(getHostViewId(), Events.EVENT_PROGRESS.toString(), event);
 
     }
 
@@ -389,7 +392,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         WritableMap event = Arguments.createMap();
         event.putDouble(EVENT_PROP_CURRENT_TIME, currentPos / 1000.0);
         event.putDouble(EVENT_PROP_SEEK_TIME, destPos / 1000.0);
-        mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_SEEK.toString(), event);
+        eventEmitter.receiveEvent(getHostViewId(), Events.EVENT_SEEK.toString(), event);
 
     }
 
@@ -401,8 +404,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         infoView.setState(InfoView.State.HIDDEN);
         if (isFatal) {
             infoView.setState(InfoView.State.FAILED, e.getMessage());
-            if (mController != null) {
-                mController.onStop();
+            if (controller != null) {
+                controller.onStop();
             }
         }
         WritableMap error = Arguments.createMap();
@@ -410,7 +413,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         error.putString(EVENT_PROP_EXTRA, e.getMessage());
         WritableMap event = Arguments.createMap();
         event.putMap(EVENT_PROP_ERROR, error);
-        mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_ERROR.toString(), event);
+        eventEmitter.receiveEvent(getHostViewId(), Events.EVENT_ERROR.toString(), event);
     }
 
     @Override
@@ -426,8 +429,8 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     @Override
     public void onLoad(String uriString, String type, boolean isNetwork) {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onLoad()");
-        if (mController != null) {
-            mController.onLoad();
+        if (controller != null) {
+            controller.onLoad();
         }
         infoView.setState(InfoView.State.LOADING);
         WritableMap src = Arguments.createMap();
@@ -436,7 +439,7 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         src.putBoolean(ReactVideoViewManager.PROP_SRC_IS_NETWORK, isNetwork);
         WritableMap event = Arguments.createMap();
         event.putMap(ReactVideoViewManager.PROP_SRC, src);
-        mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_LOAD_START.toString(), event);
+        eventEmitter.receiveEvent(getHostViewId(), Events.EVENT_LOAD_START.toString(), event);
     }
 
     @Override
@@ -454,9 +457,9 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         event.putBoolean(EVENT_PROP_FAST_FORWARD, true);
         event.putBoolean(EVENT_PROP_STEP_BACKWARD, true);
         event.putBoolean(EVENT_PROP_STEP_FORWARD, true);
-        mEventEmitter.receiveEvent(getHostViewId(), Events.EVENT_LOAD.toString(), event);
-        if (mController != null) {
-            mController.onPlayerReady();
+        eventEmitter.receiveEvent(getHostViewId(), Events.EVENT_LOAD.toString(), event);
+        if (controller != null) {
+            controller.onPlayerReady();
         }
     }
 
@@ -464,13 +467,13 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
     public void onPlay() {
         Log.d(ReactVideoViewManager.REACT_CLASS, "Container.onPlay()");
         infoView.setState(InfoView.State.HIDDEN);
-        if (mController != null) {
-            mController.onPlay();
+        if (controller != null) {
+            controller.onPlay();
         }
     }
 
     public ExoPlayerView getVideoView() {
-        return mVideoView;
+        return videoView;
     }
 
     public enum Events {

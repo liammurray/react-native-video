@@ -112,7 +112,7 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoHostView>
 
     @ReactProp(name = PROP_CONTROLS, defaultBoolean = true)
     public void setControls(final ReactVideoHostView hostView, final boolean showControls) {
-        hostView.getContainerView().setShowControls(showControls);
+        hostView.getContainerView().setEnableControllerView(showControls);
     }
 
     @ReactProp(name = PROP_AUTOHIDE_NAV, defaultBoolean = true)
