@@ -33,6 +33,8 @@ public class ReactVideoHostView extends FrameLayout {
 
     private static final boolean enableAutoOverlay = true;
 
+    ReactVideoModelState modelState = new ReactVideoModelState(this);
+
     public ReactVideoHostView(ThemedReactContext themedReactContext, OverlayView overlayView) {
         super(themedReactContext);
         this.overlayView = overlayView;
@@ -41,6 +43,10 @@ public class ReactVideoHostView extends FrameLayout {
         // We therefore want embedded container to size to this host view.
         videoViewContainer = new ReactVideoViewContainer(themedReactContext, this);
         addView(videoViewContainer, newMatchParentFrameLayoutParams());
+    }
+
+    public ReactVideoModelState getModelState() {
+        return modelState;
     }
 
     public void setBackground(Drawable background) {

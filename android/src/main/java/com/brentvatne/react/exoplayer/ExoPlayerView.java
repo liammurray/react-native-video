@@ -12,6 +12,7 @@ import android.widget.FrameLayout;
 import com.brentvatne.RCTVideo.BuildConfig;
 import com.brentvatne.RCTVideo.R;
 import com.brentvatne.react.PlayerEventListener;
+import com.brentvatne.react.ReactVideoModelState;
 import com.google.android.exoplayer.ExoPlayer;
 import com.google.android.exoplayer.audio.AudioCapabilities;
 import com.google.android.exoplayer.audio.AudioCapabilitiesReceiver;
@@ -39,13 +40,7 @@ public class ExoPlayerView extends FrameLayout
     private static final String LOGTAG = ExoPlayerWrapper.class.getSimpleName();
     private Handler mHandler = new Handler();
 
-    /** State that can be set prior to SRC */
-    private ScalableType resizeMode = ScalableType.LEFT_TOP;
-    private boolean enableRepeatMode = false;
-    private boolean isPaused = false;
-    private boolean isMuted = false;
-    private float volume = 1.0f;
-    private float playbackRate = 1.0f;
+
     private long playerPosition;
 
     private PlayerEventListener mListener;
@@ -74,7 +69,6 @@ public class ExoPlayerView extends FrameLayout
     private ExoPlayerWrapper player;
 
     private boolean playerNeedsPrepare;
-
 
     private boolean enableBackgroundAudio;
 
@@ -130,15 +124,11 @@ public class ExoPlayerView extends FrameLayout
         super.onFinishInflate();
         textureView = (TextureView) findViewById(R.id.texture_view);
         textureViewHelper = new TextureViewHelper(textureView, this);
-        textureViewHelper.setScalableType(resizeMode);
-
         subtitleLayout = (SubtitleLayout) findViewById(R.id.subtitles);
-
         CookieHandler currentHandler = CookieHandler.getDefault();
         if (currentHandler != defaultCookieManager) {
             CookieHandler.setDefault(defaultCookieManager);
         }
-
         audioCapabilitiesReceiver = new AudioCapabilitiesReceiver(getContext(), this);
     }
 
@@ -161,11 +151,19 @@ public class ExoPlayerView extends FrameLayout
         }
     }
 
+    private ReactVideoModelState model;
+
+    public void prepareVideo(ReactVideoModelState model) {
+        this.model = model;
+        textureViewHelper.setScalableType(model.getResizeMode());
+        prepareVideo(model.getContentUri(), model.getContentType(), model.isContentNetwork(), model.isContentAsset(), !model.isPaused());
+    }
 
     public void prepareVideo(String uriString,
-                             final String type,
-                             final boolean isNetwork,
-                             final boolean isAsset) {
+                             String type,
+                             boolean isNetwork,
+                             boolean isAsset,
+                             boolean playWhenReady) {
         releasePlayer();
 
         srcUri = Uri.parse(uriString);
@@ -195,31 +193,41 @@ public class ExoPlayerView extends FrameLayout
         provider = "Unspecified provider"; //TODO
         configureSubtitleView();
         if (isForeground) {
-            preparePlayer(!isPaused);
+            preparePlayer(playWhenReady);
         }
     }
 
-
-
+    private void createPlayer() {
+        Log.d(LOGTAG, "createPlayer()");
+        // Renderer handle obtaining data for a given URI
+        player = new ExoPlayerWrapper(getRendererBuilder());
+        player.setSurface(textureViewHelper.getSurface());
+        player.addListener(this);
+        player.setCaptionListener(this);
+        player.setMetadataListener(this);
+        // Init default values
+        if (model != null) {
+            setResizeMode(model.getResizeMode());
+            setRepeat(model.isEnableRepeatMode());
+            setPaused(model.isPaused());
+            setMuted(model.isMuted());
+            setVolume(model.getVolume());
+            setRateModifier(model.getPlaybackRate());
+            seekTo(model.getPos());
+        }
+        playerNeedsPrepare = true;
+        if (eventLoggerEnabled) {
+            eventLogger = new EventLogger();
+            eventLogger.startSession();
+            player.addListener(eventLogger);
+            player.setInfoListener(eventLogger);
+            player.setInternalErrorListener(eventLogger);
+        }
+    }
     /** Fetch URI metadata, and start playing if playWhenReady is true */
     private void preparePlayer(boolean playWhenReady) {
         if (player == null) {
-            Log.d(LOGTAG, "preparePlayer(): create");
-            // Renderer handle obtaining data for a given URI
-            player = new ExoPlayerWrapper(getRendererBuilder());
-            player.setSurface(textureViewHelper.getSurface());
-            player.addListener(this);
-            player.setCaptionListener(this);
-            player.setMetadataListener(this);
-            applySavedState();
-            playerNeedsPrepare = true;
-            if (eventLoggerEnabled) {
-                eventLogger = new EventLogger();
-                eventLogger.startSession();
-                player.addListener(eventLogger);
-                player.setInfoListener(eventLogger);
-                player.setInternalErrorListener(eventLogger);
-            }
+            createPlayer();
         } else {
             player.setSurface(textureViewHelper.getSurface());
         }
@@ -259,13 +267,12 @@ public class ExoPlayerView extends FrameLayout
         audioCapabilitiesReceiver.register();
         textureViewHelper.enablePersistTexture(true);
         if (player == null) {
-            preparePlayer(!isPaused);
+            preparePlayer(model != null ? !model.isPaused() : false);
         } else {
             // Player audio continued. Resume video.
             player.setBackgrounded(false);
         }
     }
-
 
     /**
      * Activity pausing or going away, Hosting view detaching from window, etc.
@@ -423,32 +430,29 @@ public class ExoPlayerView extends FrameLayout
 
 
     public void setResizeMode(final ScalableType resizeMode) {
-        this.resizeMode = resizeMode;
         textureViewHelper.setScalableType(resizeMode);
     }
 
 
     public void setRepeat(final boolean repeat) {
-        enableRepeatMode = repeat;
         if (player == null || !player.canPlay()) {
             return;
         }
-        player.setRepeatMode(enableRepeatMode);
+        player.setRepeatMode(repeat);
     }
 
+
     public void setPaused(final boolean paused) {
-        isPaused = paused;
         if (player == null || !player.canPlay()) {
             return;
         }
-        player.setPlayWhenReady(!isPaused);
+        player.setPlayWhenReady(!paused);
         if (player.isIdle()) {
             player.prepare();
         }
     }
 
     public void setMuted(final boolean muted) {
-        isMuted = muted;
         if (player != null) {
             player.setMute(muted);
             mListener.onMute(muted);
@@ -486,8 +490,6 @@ public class ExoPlayerView extends FrameLayout
     }
 
     public void seekTo(long pos) {
-
-        playerPosition = pos;
         if (player == null || !player.canPlay()) {
             return;
         }
@@ -498,8 +500,9 @@ public class ExoPlayerView extends FrameLayout
         //mListener.onSeek(playerPosition, player.getCurrentPosition());
     }
 
+
+
     public void setVolume(final float volume) {
-        this.volume = volume;
         if (player != null) {
             player.setVolume(volume);
             mListener.onVolume(volume, volume);
@@ -507,22 +510,10 @@ public class ExoPlayerView extends FrameLayout
     }
 
     public void setRateModifier(final float rate) {
-        playbackRate = rate; //TODO
+        Log.e(LOGTAG, "setRateModifier(): not implemented");
     }
 
-    /**
-     * State that may have been set before player created
-     */
-    private void applySavedState() {
-        player.seekTo(playerPosition);
-        setResizeMode(resizeMode);
-        setRepeat(enableRepeatMode);
-        setPaused(isPaused);
-        setMuted(isMuted);
-        setRateModifier(playbackRate);
-        seekTo(playerPosition);
 
-    }
 
 
 }

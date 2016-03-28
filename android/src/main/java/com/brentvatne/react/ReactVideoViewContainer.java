@@ -14,6 +14,7 @@ import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.events.RCTEventEmitter;
 import com.xealth.mediacontroller.MediaControllerView;
+import static com.brentvatne.react.ReactVideoModelState.*;
 
 /**
  * Frame that parents the actual video view and media transport controller (player controls).
@@ -428,11 +429,11 @@ public class ReactVideoViewContainer extends FrameLayout implements View.OnSyste
         }
         infoView.setState(InfoView.State.LOADING);
         WritableMap src = Arguments.createMap();
-        src.putString(ReactVideoViewManager.PROP_SRC_URI, uriString);
-        src.putString(ReactVideoViewManager.PROP_SRC_TYPE, type);
-        src.putBoolean(ReactVideoViewManager.PROP_SRC_IS_NETWORK, isNetwork);
+        src.putString(PROP_SRC_URI, uriString);
+        src.putString(PROP_SRC_TYPE, type);
+        src.putBoolean(PROP_SRC_IS_NETWORK, isNetwork);
         WritableMap event = Arguments.createMap();
-        event.putMap(ReactVideoViewManager.PROP_SRC, src);
+        event.putMap(PROP_SRC, src);
         eventEmitter.receiveEvent(getHostViewId(), Events.EVENT_LOAD_START.toString(), event);
     }
 

@@ -50,6 +50,7 @@ class VideoPlayer extends Component {
   state = {
     rate: 1,
     volume: 1,
+    paused: false,
     muted: false,
     resizeMode: 'contain',
     duration: 0.0,
@@ -112,7 +113,7 @@ class VideoPlayer extends Component {
 
   renderCycleControl() {
     return (
-      <TouchableOpacity onPress={() => { this.setState({urlIndex: (this.state.urlIndex + 1) % this.state.urls.length}) }}>
+      <TouchableOpacity onPress={() => { this.setState({urlIndex: (this.state.urlIndex + 1) % this.state.urls.length, paused: false})}}>
         <Text style={[styles.cycleControl, {fontWeight: "bold"}]}>Next</Text>
       </TouchableOpacity>
     )

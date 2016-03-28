@@ -8,6 +8,8 @@ import com.facebook.react.uimanager.ThemedReactContext;
 import com.facebook.react.uimanager.annotations.ReactProp;
 import com.yqritc.scalablevideoview.ScalableType;
 
+import static com.brentvatne.react.ReactVideoModelState.*;
+
 import java.util.Map;
 
 import javax.annotation.Nullable;
@@ -15,23 +17,6 @@ import javax.annotation.Nullable;
 public class ReactVideoViewManager extends SimpleViewManager<ReactVideoHostView> {
 
     public static final String REACT_CLASS = "RCTVideo";
-
-    public static final String PROP_SRC = "src";
-    public static final String PROP_SRC_URI = "uri";
-    public static final String PROP_SRC_TYPE = "type";
-    public static final String PROP_SRC_IS_NETWORK = "isNetwork";
-    public static final String PROP_SRC_IS_ASSET = "isAsset";
-    public static final String PROP_RESIZE_MODE = "resizeMode";
-    public static final String PROP_REPEAT = "repeat";
-    public static final String PROP_PAUSED = "paused";
-    public static final String PROP_MUTED = "muted";
-    public static final String PROP_VOLUME = "volume";
-    public static final String PROP_SEEK = "seek";
-    public static final String PROP_RATE = "rate";
-    /** Enable MediaController */
-    public static final String PROP_CONTROLS = "controls";
-    /** Automatically hide navigation UI (currently only when MediaController enabled) */
-    public static final String PROP_AUTOHIDE_NAV = "autoHideNav";
 
     @Override
     public String getName() {
@@ -66,58 +51,52 @@ public class ReactVideoViewManager extends SimpleViewManager<ReactVideoHostView>
 
     @ReactProp(name = PROP_SRC)
     public void setSrc(final ReactVideoHostView hostView, @Nullable ReadableMap src) {
-        String uri = src.hasKey(PROP_SRC_URI) ? src.getString(PROP_SRC_URI) : null;
-        hostView.getVideoView().prepareVideo(
-                uri,
-                src.getString(PROP_SRC_TYPE),
-                src.getBoolean(PROP_SRC_IS_NETWORK),
-                src.getBoolean(PROP_SRC_IS_ASSET)
-        );
+        hostView.getModelState().setSrc(src);
     }
 
     @ReactProp(name = PROP_RESIZE_MODE)
     public void setResizeMode(final ReactVideoHostView hostView, final String resizeModeOrdinalString) {
-        hostView.getVideoView().setResizeMode(ScalableType.values()[Integer.parseInt(resizeModeOrdinalString)]);
+        hostView.getModelState().setResizeMode(resizeModeOrdinalString);
     }
 
     @ReactProp(name = PROP_REPEAT, defaultBoolean = false)
     public void setRepeat(final ReactVideoHostView hostView, final boolean repeat) {
-        hostView.getVideoView().setRepeat(repeat);
+        hostView.getModelState().setRepeat(repeat);
     }
 
     @ReactProp(name = PROP_PAUSED, defaultBoolean = false)
     public void setPaused(final ReactVideoHostView hostView, final boolean paused) {
-        hostView.getVideoView().setPaused(paused);
+        hostView.getModelState().setPaused(paused);
     }
 
     @ReactProp(name = PROP_MUTED, defaultBoolean = false)
     public void setMuted(final ReactVideoHostView hostView, final boolean muted) {
-        hostView.getVideoView().setMuted(muted);
+        hostView.getModelState().setMuted(muted);
     }
 
     @ReactProp(name = PROP_VOLUME, defaultFloat = 1.0f)
     public void setVolume(final ReactVideoHostView hostView, final float volume) {
-        hostView.getVideoView().setVolume(volume);
+        hostView.getModelState().setVolume(volume);
     }
 
     @ReactProp(name = PROP_SEEK)
     public void setSeek(final ReactVideoHostView hostView, final float seek) {
-        hostView.getVideoView().seekTo(Math.round(seek * 1000.0f));
+        hostView.getModelState().setSeek(seek);
     }
 
     @ReactProp(name = PROP_RATE)
     public void setRate(final ReactVideoHostView hostView, final float rate) {
-        hostView.getVideoView().setRateModifier(rate);
+        hostView.getModelState().setRate(rate);
     }
 
     @ReactProp(name = PROP_CONTROLS, defaultBoolean = true)
     public void setControls(final ReactVideoHostView hostView, final boolean showControls) {
-        hostView.getContainerView().setEnableControllerView(showControls);
+        hostView.getModelState().setEnableControls(showControls);
     }
 
     @ReactProp(name = PROP_AUTOHIDE_NAV, defaultBoolean = true)
     public void setAutoHideNav(final ReactVideoHostView hostView, final boolean autoHideNav) {
-        hostView.getContainerView().setAutoHideNav(autoHideNav);
+        hostView.getModelState().setAutoHideNav(autoHideNav);
     }
 
 }
