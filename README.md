@@ -5,6 +5,8 @@ A <Video> component for react-native, as seen in
 
 Requires react-native >= 0.4.4
 
+This fork uses exoplayer as the player on Android and also supports full screen switch (on Android)
+
 ### Add it to your project
 
 Run `npm install react-native-video --save`
