@@ -1,8 +1,8 @@
 rootProject.name = 'RCTVideo'
 
 include ':mediacontroller'
-include ':ScalableVideoView'
-include ':ExoPlayer'
+//include ':ScalableVideoView'
+//include ':ExoPlayer'
 
-project(':ScalableVideoView').projectDir = new File(rootProject.projectDir, '../../Android-ScalableVideoView/library')
-project(':ExoPlayer').projectDir = new File(rootProject.projectDir, '../../ExoPlayer/library')
+//project(':ScalableVideoView').projectDir = new File(rootProject.projectDir, '../../Android-ScalableVideoView/library')
+//project(':ExoPlayer').projectDir = new File(rootProject.projectDir, '../../ExoPlayer/library')

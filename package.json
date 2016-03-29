@@ -7,11 +7,10 @@
   "files": [
     "android/build.gradle",
     "android/RCTVideo.iml",
-    "android/src/main/AndroidManifest.xml",
-    "android/src/main/res/values/styles.xml",
-    "android/src/main/java/com/brentvatne/react/ReactVideoPackage.java",
-    "android/src/main/java/com/brentvatne/react/ReactVideoViewManager.java",
-    "android/src/main/java/com/brentvatne/react/ReactVideoView.java",
+    "android/src
+    "android/mediacontroller/src
+    "android/mediacontroller/build.gradle
+    "android/mediacontroller/proguard-rules.pro
     "RCTVideo.xcodeproj",
     "RCTVideo.h",
     "RCTVideo.m",
