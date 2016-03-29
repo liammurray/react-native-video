@@ -7,10 +7,10 @@
   "files": [
     "android/build.gradle",
     "android/RCTVideo.iml",
-    "android/src
-    "android/mediacontroller/src
-    "android/mediacontroller/build.gradle
-    "android/mediacontroller/proguard-rules.pro
+    "android/src",
+    "android/mediacontroller/src",
+    "android/mediacontroller/build.gradle",
+    "android/mediacontroller/proguard-rules.pro",
     "RCTVideo.xcodeproj",
     "RCTVideo.h",
     "RCTVideo.m",
