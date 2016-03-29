@@ -9,3 +9,5 @@ npm-debug.log
 build/
 .gradle/
 .idea
+local.properties
+*.iml
